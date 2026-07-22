@@ -226,6 +226,16 @@ Same ID/password on both surfaces when the account is in `agents`. Admin legacy 
 
 Until `frontend/dist/.htaccess` is on Cafe24, use `/frontend/` not `/frontend/login` (Apache 404).
 
+### Workaround (until FTP upload)
+
+| URL | Status | Use |
+|-----|--------|-----|
+| `https://plustok.mycafe24.com/frontend/` | ✅ 200 | **Use this** — React Router handles `/login` client-side after `index.html` loads |
+| `https://plustok.mycafe24.com/frontend/index.html` | ✅ 200 | Same as above |
+| `https://plustok.mycafe24.com/frontend/login` | ❌ 404 | Broken until `.htaccess` is on server |
+
+Navigate to `/frontend/` then use in-app links or React Router to reach login — do not bookmark deep links until rewrite is live.
+
 ---
 
 ## 11. Operator Action Items
@@ -234,7 +244,19 @@ Until `frontend/dist/.htaccess` is on Cafe24, use `/frontend/` not `/frontend/lo
 
 1. **Render manual redeploy** — confirm commit `922a2594` live; `/health` shows `backend` + `jwt` fields.
 2. **Render env vars** — `JWT_SECRET`, `BACKEND_URL`, `CORS_ALLOWED_ORIGINS` (see §3).
-3. **Cafe24 FTP** — upload `www/frontend/dist/.htaccess` (SPA rewrite for `/frontend/login`, etc.).
+3. **Cafe24 FTP — SPA `.htaccess`** (fixes `/frontend/login` 404):
+   - **Local file:** `www/frontend/dist/.htaccess` (copied from `frontend/public/.htaccess` on `npm run build`)
+   - **Remote path:** `/frontend/.htaccess` (same directory as `index.html` and `assets/`)
+   - **Transfer:** SFTP, mode **Binary**, permission **644**
+   - **Do not** rename; filename must be exactly `.htaccess` (leading dot)
+   - **Verify after upload:**
+     ```bash
+     curl -sI https://plustok.mycafe24.com/frontend/login
+     # Expected: HTTP/1.1 200 OK (not 404)
+     curl -sI https://plustok.mycafe24.com/frontend/assets/index-HOZ3f0Ns.js
+     # Expected: HTTP/1.1 200 OK (static assets unchanged)
+     ```
+   - **Root cause:** Apache serves no physical `login` file; rewrite sends non-file requests to `index.html`. File exists locally and in git but was not uploaded with the dist bundle.
 4. **Cafe24 FTP** — upload unified auth PHP if not yet on server:
    - `config/acep.users.php`
    - `admin/index.php`
@@ -266,7 +288,7 @@ curl https://plustok.mycafe24.com/api/v1/health → 200 {"success":true,"data":{
 
 # Cafe24 Frontend
 curl https://plustok.mycafe24.com/frontend/ → 200 (built assets index-HOZ3f0Ns.js)
-curl https://plustok.mycafe24.com/frontend/login → 404 (missing .htaccess rewrite)
+curl https://plustok.mycafe24.com/frontend/login → 404 (missing .htaccess rewrite) [re-verified 2026-07-22T15:10 KST]
 curl https://plustok.mycafe24.com/admin/ → 200
 ```
 
