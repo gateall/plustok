@@ -215,7 +215,20 @@ Body: 0{"sid":"Lc3kP0Ax__xQXWvaAAAC","upgrades":["websocket"],"pingInterval":250
 
 ---
 
-## 10. Operator Action Items
+## 10. Unified Login (Frontend ↔ Admin)
+
+| Surface | Auth | SSOT |
+|---------|------|------|
+| Admin `/admin/` | `AcepUserManager::authenticate()` | `agents.login_id` + `password_hash` |
+| Frontend `/api/v1/auth/login` | `AuthService::login()` | same `agents` row |
+
+Same ID/password on both surfaces when the account is in `agents`. Admin legacy `managers` fallback works on Admin only — migrate to `agents` for Frontend parity.
+
+Until `frontend/dist/.htaccess` is on Cafe24, use `/frontend/` not `/frontend/login` (Apache 404).
+
+---
+
+## 11. Operator Action Items
 
 ### P0 — Required before full E2E
 
@@ -233,10 +246,11 @@ Body: 0{"sid":"Lc3kP0Ax__xQXWvaAAAC","upgrades":["websocket"],"pingInterval":250
 5. Manual E2E with production agent account (see §5 script).
 6. Render Logs review post-deploy.
 7. Optional: `REDIS_URL` for multi-instance / PHP→WS bridge.
+8. Confirm Frontend login with same `agents.login_id` as Admin (§10).
 
 ---
 
-## 11. Test Evidence Summary
+## 12. Test Evidence Summary
 
 ```
 # Git
@@ -258,7 +272,7 @@ curl https://plustok.mycafe24.com/admin/ → 200
 
 ---
 
-## 12. Sign-off
+## 13. Sign-off
 
 | Phase | Verdict |
 |-------|---------|
