@@ -215,6 +215,7 @@ function acep_route(string $method, string $uri, ?array $container = null): void
         $dbOk = false;
         $latency = null;
         $agentsOk = false;
+        $auditOk = false;
         try {
             $t0 = microtime(true);
             $pdo->query('SELECT 1');
@@ -233,6 +234,9 @@ function acep_route(string $method, string $uri, ?array $container = null): void
                     $agentsOk = false;
                 }
             }
+            if (acep_table_exists($pdo, 'audit_logs')) {
+                $auditOk = true;
+            }
         }
         acep_success([
             'status'     => ($dbOk && $agentsOk) ? 'healthy' : 'degraded',
@@ -240,7 +244,11 @@ function acep_route(string $method, string $uri, ?array $container = null): void
             'components' => [
                 'database' => ['status' => $dbOk ? 'up' : 'down', 'latencyMs' => $latency],
                 'agents'   => ['status' => $agentsOk ? 'up' : 'down'],
+                'audit_logs' => ['status' => $auditOk ? 'up' : 'down'],
             ],
+            'hint' => !$agentsOk
+                ? 'Frontend login requires agents table — run migrations/V1.5.0__agents_ai_ops.sql'
+                : null,
         ]);
     }
 

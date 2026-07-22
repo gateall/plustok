@@ -40,19 +40,53 @@ final class AuthService
             acep_error('ACCOUNT_LOCKED', '로그인 실패 횟수 초과로 계정이 잠겼습니다.', 403);
         }
 
-        if (!password_verify($password, (string)$agent['password_hash'])) {
-            $this->agents->incrementFailedLogin((string)$agent['id']);
-            $fail = (int)$agent['failed_login_count'] + 1;
-            if ($fail >= ACEP_LOGIN_MAX_FAIL) {
-                $this->agents->lockAccount((string)$agent['id'], ACEP_LOGIN_LOCK_MINUTES);
+        if (!password_verify($password, (string)($agent['password_hash'] ?? ''))) {
+            try {
+                $this->agents->incrementFailedLogin((string)$agent['id']);
+                $fail = (int)($agent['failed_login_count'] ?? 0) + 1;
+                if ($fail >= ACEP_LOGIN_MAX_FAIL) {
+                    $this->agents->lockAccount((string)$agent['id'], ACEP_LOGIN_LOCK_MINUTES);
+                }
+            } catch (PDOException $e) {
+                log_api_error($e);
+                acep_error(
+                    'AUTH_DB_ERROR',
+                    'agents 테이블 스키마를 확인하세요 (failed_login_count, locked_until).',
+                    503,
+                );
             }
             acep_error('UNAUTHORIZED', '아이디 또는 비밀번호가 올바르지 않습니다.', 401);
         }
 
-        $this->agents->updateLoginSuccess((string)$agent['id']);
-        $this->audit->agentAction((string)$agent['id'], 'login');
+        try {
+            $this->agents->updateLoginSuccess((string)$agent['id']);
+        } catch (PDOException $e) {
+            log_api_error($e);
+            acep_error(
+                'AUTH_DB_ERROR',
+                'agents 테이블 last_login_at 업데이트 실패. V1.5.0 마이그레이션을 확인하세요.',
+                503,
+            );
+        }
 
-        return $this->issueTokens($agent);
+        $this->safeAudit((string)$agent['id'], 'login');
+
+        try {
+            return $this->issueTokens($agent);
+        } catch (Throwable $e) {
+            log_api_error($e);
+            acep_error('AUTH_TOKEN_ERROR', 'JWT 발급 실패. config/acep.local.php ACEP_JWT_SECRET 을 확인하세요.', 500);
+        }
+    }
+
+    private function safeAudit(string $agentId, string $action): void
+    {
+        try {
+            $this->audit->agentAction($agentId, $action);
+        } catch (Throwable $e) {
+            // audit_logs 미생성 등 — 로그인 자체는 허용
+            log_api_error($e);
+        }
     }
 
     /** @return array{accessToken:string,expiresIn:int,agent:array<string,mixed>} */
