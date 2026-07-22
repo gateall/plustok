@@ -214,6 +214,7 @@ function acep_route(string $method, string $uri, ?array $container = null): void
     if ($method === 'GET' && $uri === '/system/health') {
         $dbOk = false;
         $latency = null;
+        $agentsOk = false;
         try {
             $t0 = microtime(true);
             $pdo->query('SELECT 1');
@@ -222,11 +223,23 @@ function acep_route(string $method, string $uri, ?array $container = null): void
         } catch (Throwable) {
             $dbOk = false;
         }
+        if ($dbOk) {
+            require_once __DIR__ . '/../../migrations/lib.php';
+            if (acep_table_exists($pdo, 'agents')) {
+                try {
+                    $pdo->query('SELECT login_id FROM agents LIMIT 1');
+                    $agentsOk = true;
+                } catch (Throwable) {
+                    $agentsOk = false;
+                }
+            }
+        }
         acep_success([
-            'status'     => $dbOk ? 'healthy' : 'degraded',
+            'status'     => ($dbOk && $agentsOk) ? 'healthy' : 'degraded',
             'version'    => '3.0.0-phase1',
             'components' => [
                 'database' => ['status' => $dbOk ? 'up' : 'down', 'latencyMs' => $latency],
+                'agents'   => ['status' => $agentsOk ? 'up' : 'down'],
             ],
         ]);
     }

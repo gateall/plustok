@@ -21,7 +21,17 @@ final class AuthService
     /** @return array{accessToken:string,expiresIn:int,agent:array<string,mixed>} */
     public function login(string $loginId, string $password): array
     {
-        $agent = $this->agents->findByLoginId($loginId);
+        try {
+            $agent = $this->agents->findByLoginId($loginId);
+        } catch (PDOException $e) {
+            log_api_error($e);
+            acep_error(
+                'AUTH_DB_ERROR',
+                'agents 테이블이 없거나 스키마가 맞지 않습니다. Cafe24 phpMyAdmin에서 migrations/V1.5.0__agents_ai_ops.sql 을 실행하세요.',
+                503,
+            );
+        }
+
         if (!$agent) {
             acep_error('UNAUTHORIZED', '아이디 또는 비밀번호가 올바르지 않습니다.', 401);
         }
