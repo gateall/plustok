@@ -1,0 +1,15 @@
+---
+description: PlusTok ACEP PHP backend conventions
+globs: "**/*.php"
+alwaysApply: false
+---
+
+# PlusTok PHP Rules
+
+- Minimum PHP **8.4** — see `09_DEVELOPMENT/03_배포운영.md`
+- DB: MySQL 8, snake_case — DDL in `03_SYSTEM/01_DB설계.md`
+- REST responses match `03_SYSTEM/02_API설계.md` §5 envelope
+- Auth via JWT middleware — `includes/auth.php`
+- AI: always `ai_call()` from `includes/ai.php`; keys from DB/env only
+- Admin modules: `07_ADMIN/03`, paths under `admin/`
+- Prepared statements only — no raw SQL concatenation with user input

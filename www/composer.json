@@ -1,0 +1,26 @@
+{
+  "name": "plustok/acep",
+  "description": "PlusTok V3.0 ACEP Platform",
+  "type": "project",
+  "require": {
+    "php": ">=8.2"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^11.0"
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Tests\\": "tests/"
+    }
+  },
+  "scripts": {
+    "test": [
+      "@putenv ACEP_TESTING=1",
+      "@php -d extension=openssl -d extension=curl -d extension=pdo_mysql -d extension=mbstring -d extension=zip vendor/phpunit/phpunit/phpunit"
+    ],
+    "test:coverage": [
+      "@putenv ACEP_TESTING=1",
+      "@php -d extension=openssl -d extension=curl -d extension=pdo_mysql -d extension=mbstring -d extension=zip vendor/phpunit/phpunit/phpunit --coverage-text"
+    ]
+  }
+}

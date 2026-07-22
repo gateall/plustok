@@ -1,0 +1,63 @@
+---
+description: PlusTok ACEP core rules — always read docs first, follow SSOT paths
+alwaysApply: true
+---
+
+# PlusTok ACEP — Enterprise Rules
+
+## Start Here (every session)
+
+1. Read [INDEX.md](../../INDEX.md) — navigation & STEP map
+2. Read [00_PROJECT_MASTER.md](../../00_PROJECT_MASTER.md) — project constitution
+3. Read the relevant STEP SSOT + folder `_XXX_INDEX.md` before implementing
+
+## SSOT Paths (STEP 1~8)
+
+| STEP | Folder | Index |
+|------|--------|-------|
+| 1 | `02_UIUX/` | `_UIUX_INDEX.md` |
+| 2 | `03_SYSTEM/` | `_SYSTEM_INDEX.md` |
+| 3 | `04_AI/` | `_AI_INDEX.md` |
+| 4 | `05_CHAT/` | `_CHAT_INDEX.md` |
+| 5 | `06_CRM/`, `06_FRONTEND/` | `_CRM_INDEX.md`, `_FRONTEND_INDEX.md` |
+| 6 | `07_ADMIN/` | `_ADMIN_INDEX.md` |
+| 7 | `08_DASHBOARD/` | `_DASHBOARD_INDEX.md` |
+| 8 | `09_DEVELOPMENT/` | `_DEVELOPMENT_INDEX.md` |
+
+Archive only (do not treat as SSOT): `08_TEST/`, `09_RELEASE/`.
+
+## Stack
+
+- **Backend:** PHP 8.4, MySQL 8, Redis — `api/`, `includes/`, `admin/`
+- **Frontend:** React 18 + TypeScript + Vite — `frontend/`
+- **Real-time:** Socket.io (server + client) — see `05_CHAT/01_WebSocket설계.md`
+- **AI:** `ai_call()` in `includes/ai.php` — never call providers directly
+
+## AI Failover (mandatory)
+
+Auto chain: **Claude → OpenAI → Gemini → Grok → DeepSeek**
+
+- Use `ai_call()` only; log to `ai_logs` / `ai_failover_log`
+- API keys in `ai_provider_config` / env — **never hardcode keys in source**
+- Prompts from `ai_prompts` table — see `04_AI/02_Prompt설계.md`
+
+## Coding Conventions
+
+- **PHP/DB:** snake_case tables & columns; camelCase PHP functions per existing `includes/`
+- **React/TS:** camelCase props & state; match `UI_COMPONENTS_GUIDE` interfaces
+- **Docs/files:** folders `NN_영문`, SSOT docs `NN_한글설명.md`
+- **Comments:** business logic may use Korean; identifiers & code in English
+
+## Before Implementing
+
+- [ ] Relevant STEP doc + Cross References read
+- [ ] DB schema (`03_SYSTEM/01_DB설계.md`) & API (`03_SYSTEM/02_API설계.md`) checked
+- [ ] Document checklist at bottom of STEP doc reviewed
+- [ ] Test cases: `09_DEVELOPMENT/02_테스트시나리오.md`
+
+## Forbidden
+
+- Implementing without reading STEP SSOT
+- Partial doc reads / ignoring Cross References
+- Hardcoded API keys or secrets in code
+- Bypassing `ai_call()` failover chain

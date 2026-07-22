@@ -1,0 +1,14 @@
+---
+description: PlusTok ACEP React frontend conventions
+globs: "**/*.{tsx,ts,jsx,js}"
+alwaysApply: false
+---
+
+# PlusTok React Rules
+
+- React **18** + TypeScript + Vite — `06_FRONTEND/01_Frontend_아키텍처.md`
+- UI tokens & components: `02_UIUX/UI_COMPONENTS_GUIDE.md` (camelCase interfaces)
+- Server state: TanStack Query; client UI state: Zustand
+- WebSocket: Socket.io client — events in `05_CHAT/01_WebSocket설계.md` §4
+- Optimistic UI & offline queue: `05_CHAT/02_실시간동기화.md`
+- Tests: Vitest + Testing Library — scenarios in `09_DEVELOPMENT/02_테스트시나리오.md`

@@ -1,0 +1,33 @@
+# === 비밀정보 (절대 커밋 금지) ===
+www/config/database.php
+www/config/ai.php
+www/data/dbconfig.php
+www/data/dbconfig.bak.php
+
+# === CRM 런타임 산출물 ===
+www/logs/*.log
+www/logs/*.tmp
+www/uploads/consult/*
+www/uploads/contract/*
+www/uploads/temp/*
+!www/uploads/consult/.gitkeep
+!www/uploads/contract/.gitkeep
+!www/uploads/temp/.gitkeep
+
+# === 그누보드 런타임/캐시/업로드 (커밋 대상 아님) ===
+www/data/cache/
+www/data/session/
+www/data/tmp/
+www/data/file/
+www/data/editor/
+www/data/member/
+www/data/member_image/
+www/data/pdata/
+
+# === DB 시드(실제 API Key 포함) — 웹에 올리지 말 것 ===
+# db/seed.sql 은 phpMyAdmin으로 한 번만 임포트. 서버 웹루트에 두지 않는다.
+
+# OS / 편집기
+Thumbs.db
+.DS_Store
+*.swp

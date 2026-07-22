@@ -1,0 +1,7 @@
+RewriteEngine On
+
+# Legacy direct PHP files (health.php, consult.php) remain accessible
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]
+
+RewriteRule ^ index.php [QSA,L]

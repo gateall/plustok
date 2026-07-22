@@ -1,0 +1,14 @@
+# 업로드 폴더: PHP 등 스크립트 실행 금지. 정적 파일만 서빙.
+php_flag engine off
+<IfModule mod_php.c>
+  php_admin_flag engine off
+</IfModule>
+<FilesMatch "\.(php|php3|php4|php5|php7|phtml|pl|py|cgi|asp|sh|htaccess)$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
