@@ -442,7 +442,8 @@ GET  /api/v1/chats/{roomId}/messages  →  200 (initial history load)
 2. **Render manual redeploy** — confirm latest commit; `/health` should show `backend` + `jwt` fields.
 3. **Render env vars** — `JWT_SECRET` (match Cafe24 `ACEP_JWT_SECRET`), `BACKEND_URL`, `CORS_ALLOWED_ORIGINS`.
 4. **Cafe24 FTP** — upload `frontend/dist/.htaccess` for SPA deep links.
-5. Run **§ Phase 2 — Operator Manual Test** above and update this table with PASS/FAIL.
+5. **Cafe24 FTP — blank page fix:** overwrite `/frontend/index.html` with **`frontend/dist/index.html`** (not source `frontend/index.html`). Dev template loads `/src/main.tsx` → 404 → blank React root. Upload matching `dist/assets/*` if rebuilt.
+6. Run **§ Phase 2 — Operator Manual Test** above and update this table with PASS/FAIL.
 
 ---
 
