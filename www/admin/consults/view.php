@@ -94,6 +94,33 @@ $files = $att->fetchAll();
 
 $detail = $c['detail_json'] ? json_decode($c['detail_json'], true) : null;
 
+// ACEP 채팅방 ID (detail_json.room_id 또는 chat_rooms.legacy_consult_id)
+$roomId = null;
+if (is_array($detail) && !empty($detail['room_id'])) {
+    $roomId = (string)$detail['room_id'];
+}
+if (!$roomId) {
+    try {
+        $rs = $pdo->prepare(
+            'SELECT id FROM chat_rooms WHERE legacy_consult_id = :cid AND deleted_at IS NULL LIMIT 1'
+        );
+        $rs->execute([':cid' => (int)$c['id']]);
+        $rid = $rs->fetchColumn();
+        if ($rid) {
+            $roomId = (string)$rid;
+        }
+    } catch (Throwable) {
+        // chat_rooms 미존재 레거시 설치
+    }
+}
+
+$acepJwt = acep_access_token();
+$wsUrl = getenv('ACEP_WS_URL') ?: 'wss://plustok.onrender.com';
+$host = (string)($_SERVER['HTTP_HOST'] ?? '');
+if ($host === 'localhost' || str_contains($host, '127.0.0.1')) {
+    $wsUrl = getenv('ACEP_WS_URL') ?: 'http://localhost:3001';
+}
+
 $page_title = '상담 ' . $c['consult_no']; $active = 'consults';
 require INC_DIR . '/header.php';
 ?>
@@ -242,6 +269,43 @@ $starsStr = str_repeat('★', $starsCount) . str_repeat('☆', 5 - $starsCount);
   <p style="white-space:pre-wrap"><?= e($c['memo'] ?? '') ?: '<span class="muted">내용 없음</span>' ?></p>
 </div>
 
+<?php if ($roomId): ?>
+<div class="card" style="margin-top:16px;border:1px solid #e5e7eb" id="consult-messaging"
+     data-room-id="<?= e($roomId) ?>">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <h3 style="margin:0;display:flex;align-items:center;gap:8px">
+      💬 실시간 상담 메시지
+      <span class="badge" style="background:#059669;color:#fff;font-size:11px;font-weight:normal">Socket.io</span>
+    </h3>
+    <span id="msg-connection-status" class="muted" style="font-size:12px">준비 중…</span>
+  </div>
+  <?php if (!$acepJwt): ?>
+    <div class="msg" style="background:#fef3c7;border:1px solid #fcd34d;color:#92400e;margin-bottom:12px">
+      ACEP 통합 계정(agents)으로 다시 로그인해야 실시간 메시지를 사용할 수 있습니다.
+      레거시 managers 계정은 JWT가 없습니다.
+    </div>
+  <?php endif; ?>
+  <div id="msg-list"
+       style="max-height:360px;overflow-y:auto;border:1px solid #e5e7eb;border-radius:6px;padding:12px;background:#f9fafb;min-height:120px">
+    <p class="muted" style="margin:0">메시지를 불러오는 중…</p>
+  </div>
+  <?php if (can_edit_consult() && $acepJwt): ?>
+  <form id="msg-form" style="margin-top:12px;display:flex;gap:8px;align-items:flex-end">
+    <textarea id="msg-input" rows="2" maxlength="2000" placeholder="메시지를 입력하세요…"
+              style="flex:1;box-sizing:border-box;padding:10px;border:1px solid #d1d5db;border-radius:6px;font-family:inherit;line-height:1.5;resize:vertical"></textarea>
+    <button type="submit" class="btn" id="msg-send-btn" style="white-space:nowrap">전송</button>
+  </form>
+  <?php endif; ?>
+</div>
+<?php else: ?>
+<div class="card" style="margin-top:16px">
+  <h3 style="margin-top:0">💬 실시간 상담 메시지</h3>
+  <p class="muted" style="margin:0">
+    이 상담에 연결된 ACEP 채팅방이 없습니다. 채팅 상담 종료 후 CRM에 저장된 상담만 메시지를 주고받을 수 있습니다.
+  </p>
+</div>
+<?php endif; ?>
+
 <div class="card" style="margin-top:16px;border:1px solid #e5e7eb">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
     <h3 style="margin:0;display:flex;align-items:center;gap:8px">
@@ -336,6 +400,9 @@ $starsStr = str_repeat('★', $starsCount) . str_repeat('☆', 5 - $starsCount);
   </div>
 </div>
 
+<?php if ($roomId && $acepJwt): ?>
+<script src="https://cdn.socket.io/4.8.1/socket.io.min.js" crossorigin="anonymous"></script>
+<?php endif; ?>
 <script>
 (function() {
   const csrfToken = <?= json_encode(csrf_token()) ?>;
@@ -507,6 +574,193 @@ $starsStr = str_repeat('★', $starsCount) . str_repeat('☆', 5 - $starsCount);
       });
     });
   }
+
+  /*
+   * 실시간 상담 메시지 — SSOT: 05_CHAT/01_WebSocket설계.md
+   * Events: room:join, message:send (C→S), message:receive (S→C)
+   * REST: GET/POST /api/v1/chats/{roomId}/messages
+   * E2E: 단일/다중 클라이언트 send+receive, DevTools console 0 errors
+   */
+  const msgConfig = {
+    roomId: <?= json_encode($roomId) ?>,
+    jwt: <?= json_encode($acepJwt) ?>,
+    wsUrl: <?= json_encode($wsUrl) ?>,
+    apiBase: '/api/v1',
+    managerName: <?= json_encode(current_manager()['name'] ?? '상담원') ?>,
+    customerName: <?= json_encode($c['cust_name']) ?>,
+  };
+
+  if (!msgConfig.roomId || !msgConfig.jwt || typeof io === 'undefined') {
+    return;
+  }
+
+  const msgList = document.getElementById('msg-list');
+  const msgStatus = document.getElementById('msg-connection-status');
+  const msgForm = document.getElementById('msg-form');
+  const msgInput = document.getElementById('msg-input');
+  const msgSendBtn = document.getElementById('msg-send-btn');
+  const seenMessageIds = new Set();
+  let socket = null;
+
+  function formatMsgTime(iso) {
+    if (!iso) return '';
+    try {
+      const d = new Date(iso);
+      return d.toLocaleString('ko-KR', { hour: '2-digit', minute: '2-digit', month: '2-digit', day: '2-digit' });
+    } catch (e) {
+      return String(iso);
+    }
+  }
+
+  function senderLabel(msg) {
+    if (msg.senderType === 'customer') {
+      return msgConfig.customerName || '고객';
+    }
+    return msgConfig.managerName || '상담원';
+  }
+
+  function addMessageToList(msg) {
+    const id = msg.messageId || msg.id;
+    if (id && seenMessageIds.has(id)) {
+      return;
+    }
+    if (id) {
+      seenMessageIds.add(id);
+    }
+
+    if (msgList.querySelector('.muted') && msgList.children.length === 1) {
+      msgList.innerHTML = '';
+    }
+
+    const isAgent = msg.senderType === 'agent';
+    const row = document.createElement('div');
+    row.style.cssText = 'margin-bottom:10px;display:flex;flex-direction:column;align-items:' +
+      (isAgent ? 'flex-end' : 'flex-start');
+
+    const bubble = document.createElement('div');
+    bubble.style.cssText = 'max-width:85%;padding:8px 12px;border-radius:8px;font-size:14px;line-height:1.5;white-space:pre-wrap;word-break:break-word;' +
+      (isAgent ? 'background:#dbeafe;color:#1e3a8a;' : 'background:#fff;border:1px solid #e5e7eb;color:#111827;');
+
+    const meta = document.createElement('div');
+    meta.style.cssText = 'font-size:11px;color:#6b7280;margin-bottom:4px;';
+    meta.textContent = senderLabel(msg) + ' · ' + formatMsgTime(msg.createdAt || msg.timestamp);
+
+    const body = document.createElement('div');
+    body.textContent = msg.content || '';
+
+    bubble.appendChild(meta);
+    bubble.appendChild(body);
+    row.appendChild(bubble);
+    msgList.appendChild(row);
+    msgList.scrollTop = msgList.scrollHeight;
+  }
+
+  async function loadInitialMessages() {
+    try {
+      const res = await fetch(
+        msgConfig.apiBase + '/chats/' + encodeURIComponent(msgConfig.roomId) + '/messages?limit=50',
+        { headers: { Authorization: 'Bearer ' + msgConfig.jwt, Accept: 'application/json' } }
+      );
+      const json = await res.json();
+      if (!json.success || !json.data?.messages) {
+        msgList.innerHTML = '<p class="muted" style="margin:0">메시지를 불러오지 못했습니다.</p>';
+        return;
+      }
+      msgList.innerHTML = '';
+      if (json.data.messages.length === 0) {
+        msgList.innerHTML = '<p class="muted" style="margin:0">아직 메시지가 없습니다.</p>';
+        return;
+      }
+      json.data.messages.forEach(function(m) {
+        addMessageToList({
+          messageId: m.id,
+          content: m.content,
+          senderType: m.senderType,
+          senderId: m.senderId,
+          createdAt: m.createdAt,
+        });
+      });
+    } catch (e) {
+      msgList.innerHTML = '<p class="muted" style="margin:0">메시지 로드 실패 (네트워크 오류)</p>';
+    }
+  }
+
+  function setConnectionStatus(text, ok) {
+    if (!msgStatus) return;
+    msgStatus.textContent = text;
+    msgStatus.style.color = ok ? '#059669' : (ok === false ? '#dc2626' : '#6b7280');
+  }
+
+  function initMessagingSocket() {
+    socket = io(msgConfig.wsUrl, {
+      path: '/socket.io',
+      auth: { token: msgConfig.jwt },
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      transports: ['websocket', 'polling'],
+    });
+
+    socket.on('connect', function() {
+      setConnectionStatus('연결됨', true);
+      socket.emit('room:join', { roomId: msgConfig.roomId });
+    });
+
+    socket.on('disconnect', function() {
+      setConnectionStatus('연결 끊김', false);
+    });
+
+    socket.on('connect_error', function(err) {
+      setConnectionStatus('연결 오류: ' + (err.message || 'unknown'), false);
+    });
+
+    socket.on('error', function(payload) {
+      console.error('[consult-messaging]', payload);
+      if (payload?.message) {
+        setConnectionStatus(payload.message, false);
+      }
+    });
+
+    socket.on('room:joined', function() {
+      setConnectionStatus('채팅방 입장', true);
+    });
+
+    socket.on('message:receive', function(msg) {
+      if (msg.roomId && msg.roomId !== msgConfig.roomId) {
+        return;
+      }
+      addMessageToList(msg);
+    });
+  }
+
+  loadInitialMessages();
+  initMessagingSocket();
+
+  if (msgForm && msgInput) {
+    msgForm.addEventListener('submit', function(ev) {
+      ev.preventDefault();
+      const text = msgInput.value.trim();
+      if (!text || !socket?.connected) {
+        return;
+      }
+      if (msgSendBtn) {
+        msgSendBtn.disabled = true;
+      }
+      socket.emit('message:send', { roomId: msgConfig.roomId, content: text });
+      msgInput.value = '';
+      if (msgSendBtn) {
+        msgSendBtn.disabled = false;
+      }
+      msgInput.focus();
+    });
+  }
+
+  window.addEventListener('beforeunload', function() {
+    if (socket?.connected) {
+      socket.emit('room:leave', { roomId: msgConfig.roomId });
+      socket.disconnect();
+    }
+  });
 })();
 </script>
 <?php require INC_DIR . '/footer.php'; ?>
