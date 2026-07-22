@@ -1,0 +1,12 @@
+﻿# Upload to /frontend/.htaccess on server then rename
+# Cafe24 Apache — React SPA (/frontend/ 서브경로)
+RewriteEngine On
+RewriteBase /frontend/
+
+# 정적 파일은 그대로
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# 나머지는 index.html (React Router)
+RewriteRule ^ index.html [L]
