@@ -32,6 +32,9 @@ export async function startRedisSubscriber(io) {
     });
     console.log('[redis] subscriber connected');
 }
+export function isRedisSubscriberActive() {
+    return sub?.isOpen ?? false;
+}
 export async function publishRoomEvent(roomId, event, payload) {
     if (!pub?.isOpen) {
         return;

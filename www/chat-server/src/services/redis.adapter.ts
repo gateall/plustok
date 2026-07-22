@@ -1,0 +1,31 @@
+import type { Server } from 'socket.io';
+import { createAdapter } from '@socket.io/redis-adapter';
+import { createClient, type RedisClientType } from 'redis';
+
+let pubClient: RedisClientType | null = null;
+
+export async function attachRedisAdapter(io: Server): Promise<boolean> {
+  const url = process.env.REDIS_URL?.trim();
+  if (!url) {
+    console.warn('[redis] REDIS_URL not set — Socket.io in-memory adapter');
+    return false;
+  }
+
+  try {
+    pubClient = createClient({ url });
+    const subClient = pubClient.duplicate();
+    pubClient.on('error', (e) => console.error('[redis adapter pub]', e));
+    subClient.on('error', (e) => console.error('[redis adapter sub]', e));
+    await Promise.all([pubClient.connect(), subClient.connect()]);
+    io.adapter(createAdapter(pubClient, subClient));
+    console.log('[redis] Socket.io Redis adapter connected');
+    return true;
+  } catch (e) {
+    console.error('[redis] adapter failed', e);
+    return false;
+  }
+}
+
+export function isRedisAdapterActive(): boolean {
+  return pubClient?.isOpen ?? false;
+}

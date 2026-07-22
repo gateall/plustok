@@ -82,8 +82,12 @@ function log_activity(string $action, ?string $target = null, ?string $detail = 
             'INSERT INTO activity_log (manager_id, action, target, detail, ip)
              VALUES (:mid, :action, :target, :detail, :ip)'
         );
+        $mid = $m['id'] ?? null;
+        if (is_string($mid) || !is_numeric($mid)) {
+            $mid = null;
+        }
         $stmt->execute([
-            ':mid' => $m['id'] ?? null,
+            ':mid' => $mid,
             ':action' => $action,
             ':target' => $target,
             ':detail' => $detail,
@@ -92,4 +96,16 @@ function log_activity(string $action, ?string $target = null, ?string $detail = 
     } catch (Throwable $e) {
         log_error('log_activity', $e->getMessage());
     }
+}
+
+/** ACEP 통합 사용자 (agents JWT 세션) */
+function current_acep_user(): ?array
+{
+    return $_SESSION['acep_user'] ?? null;
+}
+
+function acep_access_token(): ?string
+{
+    $t = $_SESSION['acep_jwt'] ?? null;
+    return is_string($t) && $t !== '' ? $t : null;
 }

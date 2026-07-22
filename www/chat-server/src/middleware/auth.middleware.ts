@@ -1,11 +1,10 @@
 import type { Socket } from 'socket.io';
-import jwt from 'jsonwebtoken';
-import type { JwtPayload } from '../types/socket-events.js';
+import { decodeJwtPayload } from '../auth.js';
 
 export interface AuthenticatedSocket extends Socket {
   data: {
     userId: string;
-    role: JwtPayload['role'];
+    role: 'agent' | 'admin' | 'operator' | 'customer';
     name: string;
     token: string;
     activeRoomId?: string;
@@ -22,22 +21,22 @@ export function authMiddleware(
     return;
   }
 
-  const secret = process.env.JWT_SECRET;
-  if (!secret) {
+  if (!process.env.JWT_SECRET?.trim()) {
     next(new Error('JWT_SECRET not configured'));
     return;
   }
 
-  try {
-    const payload = jwt.verify(token, secret) as JwtPayload;
-    socket.data = {
-      userId: payload.sub,
-      role: payload.role,
-      name: payload.name ?? '',
-      token,
-    };
-    next();
-  } catch {
+  const payload = decodeJwtPayload(token);
+  if (!payload) {
     next(new Error('UNAUTHORIZED'));
+    return;
   }
+
+  socket.data = {
+    userId: payload.sub,
+    role: payload.role,
+    name: payload.name ?? '',
+    token,
+  };
+  next();
 }

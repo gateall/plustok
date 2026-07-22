@@ -5,13 +5,17 @@ require_once __DIR__ . '/../../config/acep.php';
 require_once __DIR__ . '/../api_envelope.php';
 require_once __DIR__ . '/../util/JwtHelper.php';
 require_once __DIR__ . '/../util/Uuid.php';
+require_once __DIR__ . '/../../config/acep.users.php';
 
 final class AuthService
 {
+    private AcepUserManager $users;
+
     public function __construct(
         private AgentRepository $agents,
         private AuditService $audit,
     ) {
+        $this->users = new AcepUserManager($agents);
     }
 
     /** @return array{accessToken:string,expiresIn:int,agent:array<string,mixed>} */

@@ -18,6 +18,16 @@ final class AuthApiTest extends ApiTestCase
         $this->assertArrayHasKey('accessToken', $res->body['data']);
     }
 
+    public function test_login_with_username_alias(): void
+    {
+        $res = $this->api('POST', '/auth/login', [
+            'username' => 'admin',
+            'password' => 'Admin123!',
+        ]);
+        $this->assertSame(200, $res->http);
+        $this->assertTrue($res->isSuccess());
+    }
+
     public function test_login_invalid_credentials(): void
     {
         $res = $this->api('POST', '/auth/login', [

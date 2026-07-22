@@ -45,6 +45,10 @@ export async function startRedisSubscriber(io: Server): Promise<void> {
   console.log('[redis] subscriber connected');
 }
 
+export function isRedisSubscriberActive(): boolean {
+  return sub?.isOpen ?? false;
+}
+
 export async function publishRoomEvent(
   roomId: string,
   event: string,

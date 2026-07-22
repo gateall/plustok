@@ -1,4 +1,26 @@
 const base = () => (process.env.BACKEND_URL ?? 'http://localhost/api/v1').replace(/\/$/, '');
+export async function pingBackend() {
+    const url = `${base()}/health`;
+    const t0 = Date.now();
+    try {
+        const res = await fetch(url, {
+            headers: { Accept: 'application/json' },
+            signal: AbortSignal.timeout(8000),
+        });
+        return {
+            ok: res.ok,
+            latencyMs: Date.now() - t0,
+            error: res.ok ? undefined : `HTTP ${res.status}`,
+        };
+    }
+    catch (e) {
+        return {
+            ok: false,
+            latencyMs: Date.now() - t0,
+            error: e instanceof Error ? e.message : 'fetch failed',
+        };
+    }
+}
 export async function assertRoomAccess(roomId, token) {
     const res = await fetch(`${base()}/chats/${roomId}`, {
         headers: {

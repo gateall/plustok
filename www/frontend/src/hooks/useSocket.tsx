@@ -72,6 +72,7 @@ function useSocketInternal(): UseSocketReturn {
     (token: string) => {
       disconnect();
       const socket = io(WS_URL, {
+        path: '/socket.io',
         auth: { token },
         reconnection: true,
         reconnectionDelay: 1000,

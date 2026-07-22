@@ -13,9 +13,16 @@ if (current_manager()) {
     exit;
 }
 
-// 관리자가 아직 없으면 setup으로 안내
-$hasManager = (int) db()->query('SELECT COUNT(*) FROM managers')->fetchColumn();
-if ($hasManager === 0) {
+// 관리자가 아직 없으면 setup으로 안내 (legacy managers 또는 ACEP agents)
+require_once __DIR__ . '/../migrations/lib.php';
+$pdo = db();
+$hasManager = acep_table_exists($pdo, 'managers')
+    ? (int)$pdo->query('SELECT COUNT(*) FROM managers')->fetchColumn()
+    : 0;
+$hasAgents = acep_table_exists($pdo, 'agents')
+    ? (int)$pdo->query('SELECT COUNT(*) FROM agents WHERE deleted_at IS NULL')->fetchColumn()
+    : 0;
+if ($hasManager === 0 && $hasAgents === 0) {
     header('Location: /admin/setup.php');
     exit;
 }
@@ -32,26 +39,63 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     } else {
         $loginId = clean_str($_POST['login_id'] ?? '', 50);
         $pw = (string)($_POST['password'] ?? '');
+        $authOk = false;
 
-        $stmt = db()->prepare('SELECT * FROM managers WHERE login_id = :id AND status = 1 LIMIT 1');
-        $stmt->execute([':id' => $loginId]);
-        $mgr = $stmt->fetch();
+        // 1) ACEP 통합 사용자 (agents — Frontend /api/v1/auth/login 과 동일)
+        if (!$authOk && acep_table_exists($pdo, 'agents')) {
+            require_once __DIR__ . '/../config/acep.users.php';
+            $agentRepo = new AgentRepository($pdo);
+            $userManager = new AcepUserManager($agentRepo);
+            $agentRow = $agentRepo->findByLoginId($loginId);
 
-        if ($mgr && password_verify($pw, $mgr['password'])) {
-            // 성공
-            session_regenerate_id(true);
-            $_SESSION['manager'] = [
-                'id' => (int)$mgr['id'], 'login_id' => $mgr['login_id'],
-                'name' => $mgr['name'], 'role' => $mgr['role'],
-            ];
-            $_SESSION['login_fail'] = 0;
-            db()->prepare('UPDATE managers SET last_login = NOW() WHERE id = :id')
-                ->execute([':id' => (int)$mgr['id']]);
-            log_activity('login', 'manager:' . (int)$mgr['id']);
-            header('Location: /admin/dashboard.php');
-            exit;
+            if ($agentRow && !empty($agentRow['locked_until']) && strtotime((string)$agentRow['locked_until']) > time()) {
+                $error = '로그인 실패 횟수 초과로 계정이 잠겼습니다.';
+                $authOk = true;
+            } else {
+                $publicUser = $userManager->authenticate($loginId, $pw);
+                if ($publicUser && in_array($publicUser['role'], ['admin', 'operator', 'agent'], true)) {
+                    session_regenerate_id(true);
+                    $_SESSION['acep_user'] = $publicUser;
+                    $_SESSION['acep_jwt'] = $userManager->createAccessToken($publicUser);
+                    $_SESSION['manager'] = AcepUserManager::legacyManagerSession($publicUser);
+                    $_SESSION['login_fail'] = 0;
+                    $agentRepo->updateLoginSuccess($publicUser['userId']);
+                    log_activity('login', 'agent:' . $publicUser['userId']);
+                    header('Location: /admin/dashboard.php');
+                    exit;
+                }
+                if ($agentRow) {
+                    $agentRepo->incrementFailedLogin((string)$agentRow['id']);
+                }
+            }
         }
 
+        // 2) Legacy managers (CRM 구버전 계정)
+        if (!$authOk && acep_table_exists($pdo, 'managers')) {
+            $stmt = $pdo->prepare('SELECT * FROM managers WHERE login_id = :id AND status = 1 LIMIT 1');
+            $stmt->execute([':id' => $loginId]);
+            $mgr = $stmt->fetch();
+
+            if ($mgr && password_verify($pw, $mgr['password'])) {
+                session_regenerate_id(true);
+                $_SESSION['manager'] = [
+                    'id' => (int)$mgr['id'],
+                    'login_id' => $mgr['login_id'],
+                    'name' => $mgr['name'],
+                    'role' => $mgr['role'],
+                ];
+                $_SESSION['login_fail'] = 0;
+                $pdo->prepare('UPDATE managers SET last_login = NOW() WHERE id = :id')
+                    ->execute([':id' => (int)$mgr['id']]);
+                log_activity('login', 'manager:' . (int)$mgr['id']);
+                header('Location: /admin/dashboard.php');
+                exit;
+            }
+        }
+
+        if ($error !== '') {
+            // locked message already set
+        } else {
         // 실패
         $fail = (int)($_SESSION['login_fail'] ?? 0) + 1;
         $_SESSION['login_fail'] = $fail;
@@ -61,6 +105,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             $error = '로그인 실패가 많아 ' . LOGIN_LOCK_SECONDS . '초간 잠깁니다.';
         } else {
             $error = 'ID 또는 비밀번호가 올바르지 않습니다. (' . $fail . '/' . LOGIN_MAX_FAIL . ')';
+        }
         }
     }
 }

@@ -24,7 +24,7 @@ function acep_route(string $method, string $uri, ?array $container = null): void
     // --- Auth ---
     if ($method === 'POST' && $uri === '/auth/login') {
         $body = acep_read_json();
-        $loginId = trim((string)($body['loginId'] ?? ''));
+        $loginId = trim((string)($body['loginId'] ?? $body['username'] ?? ''));
         $password = (string)($body['password'] ?? '');
         if ($loginId === '' || $password === '') {
             acep_error('VALIDATION_ERROR', 'loginId와 password가 필요합니다.', 400);

@@ -36,6 +36,22 @@
 
 ---
 
+### D. Render (현재 운영 — Hybrid A 변형)
+
+1. Render Web Service — Root Directory: `www/chat-server`, Dockerfile Path: `Dockerfile`
+2. 환경 변수: `JWT_SECRET`, `BACKEND_URL`, `CORS_ALLOWED_ORIGINS` (선택 `REDIS_URL`)
+3. `frontend/.env.production`: `VITE_WS_URL=wss://plustok.onrender.com`
+4. Render는 `PORT`를 자동 주입 — chat-server는 `process.env.PORT` 우선 사용
+
+검증:
+
+```bash
+curl -s https://plustok.onrender.com/health
+# backend.reachable, jwt.configured 확인
+```
+
+---
+
 ## VPS PM2 배포 절차
 
 ```bash
@@ -54,7 +70,7 @@ pm2 startup
 
 ```bash
 curl -s http://127.0.0.1:3001/health
-# {"status":"healthy","uptimeSec":...}
+# {"status":"healthy","backend":{...},"jwt":{...},"redis":{...}}
 ```
 
 Nginx 적용 후 (443):

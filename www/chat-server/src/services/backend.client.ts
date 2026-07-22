@@ -1,7 +1,32 @@
 const base = () => (process.env.BACKEND_URL ?? 'http://localhost/api/v1').replace(/\/$/, '');
 
-export async function assertRoomAccess(
-  roomId: string,
+export async function pingBackend(): Promise<{
+  ok: boolean;
+  latencyMs?: number;
+  error?: string;
+}> {
+  const url = `${base()}/health`;
+  const t0 = Date.now();
+  try {
+    const res = await fetch(url, {
+      headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(8000),
+    });
+    return {
+      ok: res.ok,
+      latencyMs: Date.now() - t0,
+      error: res.ok ? undefined : `HTTP ${res.status}`,
+    };
+  } catch (e) {
+    return {
+      ok: false,
+      latencyMs: Date.now() - t0,
+      error: e instanceof Error ? e.message : 'fetch failed',
+    };
+  }
+}
+
+export async function assertRoomAccess(  roomId: string,
   token: string,
 ): Promise<boolean> {
   const res = await fetch(`${base()}/chats/${roomId}`, {

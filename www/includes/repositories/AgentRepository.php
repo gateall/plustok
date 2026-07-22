@@ -94,6 +94,16 @@ final class AgentRepository
         $st->execute($data);
     }
 
+    public function updatePasswordHash(string $id, string $passwordHash): bool
+    {
+        $st = $this->pdo->prepare(
+            'UPDATE agents SET password_hash = :hash, updated_at = CURRENT_TIMESTAMP(3)
+             WHERE id = :id AND deleted_at IS NULL'
+        );
+        $st->execute([':hash' => $passwordHash, ':id' => $id]);
+        return $st->rowCount() > 0;
+    }
+
     /** @param array<string,mixed> $settings */
     public function updateSettingsJson(string $id, array $settings): void
     {

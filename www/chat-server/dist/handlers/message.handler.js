@@ -25,11 +25,12 @@ export function registerMessageHandlers(io) {
                 });
                 return;
             }
+            const senderType = socket.data.role === 'customer' ? 'customer' : 'agent';
             const broadcast = {
                 messageId: saved.messageId,
                 roomId,
                 content,
-                senderType: 'agent',
+                senderType,
                 senderId: socket.data.userId,
                 tempId: payload.tempId,
                 createdAt: saved.createdAt,

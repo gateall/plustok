@@ -1,26 +1,24 @@
-import jwt from 'jsonwebtoken';
+import { decodeJwtPayload } from '../auth.js';
 export function authMiddleware(socket, next) {
     const token = socket.handshake.auth?.token;
     if (!token) {
         next(new Error('UNAUTHORIZED'));
         return;
     }
-    const secret = process.env.JWT_SECRET;
-    if (!secret) {
+    if (!process.env.JWT_SECRET?.trim()) {
         next(new Error('JWT_SECRET not configured'));
         return;
     }
-    try {
-        const payload = jwt.verify(token, secret);
-        socket.data = {
-            userId: payload.sub,
-            role: payload.role,
-            name: payload.name ?? '',
-            token,
-        };
-        next();
-    }
-    catch {
+    const payload = decodeJwtPayload(token);
+    if (!payload) {
         next(new Error('UNAUTHORIZED'));
+        return;
     }
+    socket.data = {
+        userId: payload.sub,
+        role: payload.role,
+        name: payload.name ?? '',
+        token,
+    };
+    next();
 }
