@@ -6,7 +6,8 @@ import { registerMessageHandlers } from './handlers/message.handler.js';
 import { registerTypingHandlers } from './handlers/typing.handler.js';
 import { startRedisSubscriber } from './services/redis.pubsub.js';
 
-const PORT = Number(process.env.CHAT_SERVER_PORT ?? 3001);
+// Render/Railway: PORT — local/Docker: CHAT_SERVER_PORT — default 3001
+const PORT = Number(process.env.PORT ?? process.env.CHAT_SERVER_PORT ?? 3001);
 
 const httpServer = http.createServer((req, res) => {
   if (req.url === '/health') {
