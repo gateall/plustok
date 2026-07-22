@@ -286,3 +286,164 @@ curl https://plustok.mycafe24.com/admin/ → 200
 ---
 
 *Generated: 2026-07-22T14:38+09:00*
+
+---
+
+## Phase 2 — Admin Messaging & GO-LIVE
+
+**Date:** 2026-07-22 (KST)  
+**Verifier:** Cursor Agent (Phase 2 code complete + remote infra checks)  
+**Commits (Phase 2 chain):**
+
+| Commit | Description |
+|--------|-------------|
+| `d4e07aae` | Add real-time messaging to admin consult detail page (`admin/consults/view.php`) |
+| `237988a3` | Document unified Frontend/Admin login credentials in deploy report |
+| `922a2594` | Unified auth and Render chat-server integration for Phase 3 deploy |
+
+**Push:** ✅ `237988a3..d4e07aae  main -> main` (verified up-to-date on `origin/main`)
+
+---
+
+### Phase 2 — Completed Items Checklist
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Backend chat-server (`www/chat-server/`) | ✅ Complete | Dockerfile, auth middleware, message/room handlers |
+| WebSocket / Socket.io protocol | ✅ Complete | SSOT events: `room:join`, `message:send`, `message:receive` |
+| JWT auth (Frontend + Admin → WS) | ✅ Complete | `auth: { token }` from `$_SESSION['acep_jwt']` / `AuthService` |
+| Admin consult detail messaging UI | ✅ Complete | `view.php` — message list, input, Socket.io client (commit `d4e07aae`) |
+| REST message persistence | ✅ Complete | `GET/POST /api/v1/chats/{roomId}/messages` via PHP backend |
+| Unified auth (agents SSOT) | ✅ Complete | Admin + Frontend share `agents.login_id` |
+| Render auto-deploy trigger | ✅ Pushed | Git push received; Render may still run legacy build (see §2) |
+| Full E2E (live browser) | ⚠️ **Operator manual** | No production credentials available to agent |
+
+---
+
+### Phase 2 — Test Result Table
+
+| Test | Result | Evidence |
+|------|--------|----------|
+| Git commit & push (`d4e07aae`) | ✅ PASS | `git push origin main` → *Everything up-to-date* |
+| Render `/health` HTTP 200 | ✅ PASS | `curl https://plustok.onrender.com/health` → 200 |
+| Render enhanced health payload | ⚠️ BLOCKED | Still legacy: `{"status":"healthy","uptimeSec":…}` — no `backend`/`jwt` fields |
+| Socket.io polling handshake | ✅ PASS | `GET …/socket.io/?EIO=4&transport=polling` → 200, sid returned |
+| Cafe24 API health | ✅ PASS | `GET https://plustok.mycafe24.com/api/v1/health` → 200 |
+| Admin page load (`/admin/`) | ✅ PASS | HTTP 200 |
+| Admin consult detail messaging UI (code) | ✅ PASS | `view.php` +254 lines: list, form, Socket.io handlers |
+| Admin message input / send (live) | ⚠️ **Operator manual** | Requires agents login + consult with linked `chat_rooms` row |
+| WS `room:join` event (live) | ⚠️ **Operator manual** | DevTools → Network → WS frames after login |
+| WS `message:send` → REST persist (live) | ⚠️ **Operator manual** | Verify `POST /api/v1/chats/{roomId}/messages` 201 in Network tab |
+| WS `message:receive` broadcast (live) | ⚠️ **Operator manual** | Second client/tab must show bubble without refresh |
+| DevTools console 0 errors (live) | ⚠️ **Operator manual** | Agent cannot run authenticated browser session |
+| Multi-client realtime sync | ⚠️ **Operator manual** | Browser A (Admin) send → Browser B (Frontend) receive |
+| Frontend SPA deep links | ❌ FAIL | `/frontend/login` → 404 (`.htaccess` not on Cafe24) |
+
+---
+
+### Phase 2 — GO-LIVE Approval Status
+
+| Gate | Verdict |
+|------|---------|
+| **Code readiness** | ✅ **APPROVED** — Admin messaging implemented per SSOT |
+| **Infra readiness** | ⚠️ **CONDITIONAL** — Render legacy health suggests env/build not fully verified |
+| **Production GO-LIVE** | ❌ **NOT APPROVED** — Live E2E not executed; operator must complete manual steps below |
+
+**Honest assessment:** Phase 2 **code is complete and pushed**. Remote infra checks pass for HTTP health and Socket.io handshake. **GO-LIVE cannot be signed off** until an operator runs the manual browser tests with a real `agents` account and confirms zero console errors plus multi-client message sync.
+
+---
+
+### Phase 2 — Operator Manual Test: Admin Messaging
+
+Run in browser after FTP upload of `admin/consults/view.php` (commit `d4e07aae`) to Cafe24 if not auto-synced.
+
+#### Prerequisites
+
+1. Log in at `https://plustok.mycafe24.com/admin/` with an **agents** account (not legacy `managers` — JWT required).
+2. Open a consult detail page that has a linked ACEP chat room (`detail_json.room_id` or `chat_rooms.legacy_consult_id`).
+3. Confirm the **💬 실시간 상담 메시지** card appears (not the "채팅방이 없습니다" fallback).
+
+#### Test 1 — Message input / send
+
+1. Type a test message in the textarea and click **전송**.
+2. Confirm the message bubble appears in the list (agent bubble, right-aligned, blue).
+3. Connection status should show **채팅방 입장** or **연결됨**.
+
+#### Test 2 — Network: Socket.io events
+
+Open DevTools → **Network** → filter **WS** (WebSocket):
+
+| Event | Direction | When |
+|-------|-----------|------|
+| `room:join` | C→S | On socket connect (payload: `{ roomId }`) |
+| `room:joined` | S→C | After join succeeds |
+| `message:send` | C→S | On form submit (payload: `{ roomId, content }`) |
+| `message:receive` | S→C | After chat-server persists via REST and broadcasts |
+
+Also check **Fetch/XHR** for REST persistence:
+
+```
+POST /api/v1/chats/{roomId}/messages  →  201 Created
+GET  /api/v1/chats/{roomId}/messages  →  200 (initial history load)
+```
+
+> **SSOT note:** Do **not** expect `message:new_message` — ACEP uses `message:receive`.
+
+#### Test 3 — DevTools console 0 errors
+
+1. Open DevTools → **Console**.
+2. Reload the consult detail page.
+3. Send one test message.
+4. **Pass criteria:** zero red errors; only expected `[consult-messaging]` logs on server-side errors.
+
+#### Test 4 — Multi-client realtime sync
+
+1. **Browser A:** Admin consult detail — send message *"Phase2 test A→B"*.
+2. **Browser B:** Frontend chat screen for the same room (or second Admin tab on same consult).
+3. **Pass criteria:** Browser B shows the message within ~2 s without page refresh.
+4. Reverse: Browser B sends → Browser A receives via `message:receive`.
+
+#### Failure triage
+
+| Symptom | Likely cause |
+|---------|--------------|
+| Yellow JWT warning banner | Logged in via legacy `managers` — re-login with `agents` account |
+| "채팅방이 없습니다" | Consult has no `chat_rooms` row — use a chat-linked consult |
+| Connection error on status | Render not redeployed / `JWT_SECRET` mismatch / CORS |
+| Send works but no receive | Check Render logs; verify `BACKEND_URL` points to Cafe24 API |
+
+---
+
+### Phase 2 — Remaining Operator Actions (P0)
+
+1. **Cafe24 FTP** — upload `admin/consults/view.php` from commit `d4e07aae` if not on server.
+2. **Render manual redeploy** — confirm latest commit; `/health` should show `backend` + `jwt` fields.
+3. **Render env vars** — `JWT_SECRET` (match Cafe24 `ACEP_JWT_SECRET`), `BACKEND_URL`, `CORS_ALLOWED_ORIGINS`.
+4. **Cafe24 FTP** — upload `frontend/dist/.htaccess` for SPA deep links.
+5. Run **§ Phase 2 — Operator Manual Test** above and update this table with PASS/FAIL.
+
+---
+
+### Phase 2 — Remote Evidence (2026-07-22 ~15:10 KST)
+
+```
+# Git
+d4e07aae Add real-time messaging to admin consult detail page.
+237988a3 Document unified Frontend/Admin login credentials in deploy report.
+Push: origin/main up-to-date at d4e07aae
+
+# Render
+curl https://plustok.onrender.com/health
+  → 200 {"status":"healthy","uptimeSec":6.67…}  [LEGACY — enhanced health pending]
+curl https://plustok.onrender.com/socket.io/?EIO=4&transport=polling
+  → 200 0{"sid":"…","upgrades":["websocket"],…}
+
+# Cafe24
+curl https://plustok.mycafe24.com/api/v1/health → 200
+curl https://plustok.mycafe24.com/admin/         → 200
+curl https://plustok.mycafe24.com/frontend/login → 404
+```
+
+---
+
+*Phase 2 section added: 2026-07-22T15:10+09:00*
