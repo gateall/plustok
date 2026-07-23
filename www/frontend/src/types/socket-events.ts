@@ -69,6 +69,10 @@ export interface ReadUpdatePayload {
 export interface RoomUpdatePayload {
   roomId: string;
   status?: string;
+  agentId?: string | null;
+  customerName?: string;
+  inquiryType?: string;
+  lastMessage?: string | null;
   unreadCount?: number;
   contractProbability?: number;
   updatedAt?: string;

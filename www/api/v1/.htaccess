@@ -1,5 +1,9 @@
 RewriteEngine On
 
+# Cafe24/Apache: pass Authorization header to PHP (Bearer JWT)
+RewriteCond %{HTTP:Authorization} .
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
 # Legacy direct PHP files (health.php, consult.php) remain accessible
 RewriteCond %{REQUEST_FILENAME} -f
 RewriteRule ^ - [L]

@@ -33,6 +33,23 @@ final class PiiEncryptor
         return $plain;
     }
 
+    /** agents.email — 암호화 저장 우선, 레거시 평문(수동 SQL) 폴백 */
+    public static function decryptEmail(string $stored): ?string
+    {
+        $stored = trim($stored);
+        if ($stored === '') {
+            return null;
+        }
+        try {
+            return self::decrypt($stored);
+        } catch (Throwable) {
+            if (filter_var($stored, FILTER_VALIDATE_EMAIL)) {
+                return $stored;
+            }
+            return null;
+        }
+    }
+
     public static function phoneHash(string $phone): string
     {
         $digits = preg_replace('/\D/', '', $phone) ?? '';

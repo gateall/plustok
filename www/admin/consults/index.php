@@ -2,9 +2,13 @@
 declare(strict_types=1);
 /** 상담 목록 + 필터 (SPEC.md B-3) */
 require_once __DIR__ . '/../../includes/auth.php';
+require_once __DIR__ . '/../../includes/util/CrmSchema.php';
+require_once __DIR__ . '/../../includes/util/ConsultMeta.php';
 require_login();
 
 $pdo = db();
+$custTable = CrmSchema::legacyCustomerTable($pdo);
+$hasConsultMeta = ConsultMeta::tableExists($pdo);
 
 $flash = ''; $flashErr = '';
 // 선택 삭제 (super/admin 전용)
@@ -32,6 +36,8 @@ $fSort   = clean_str($_GET['sort'] ?? '', 20);
 $fFrom   = clean_str($_GET['from'] ?? '', 10);
 $fTo     = clean_str($_GET['to'] ?? '', 10);
 $q       = clean_str($_GET['q'] ?? '', 50);
+$fMetaKey   = clean_str($_GET['meta_key'] ?? '', 60);
+$fMetaValue = clean_str($_GET['meta_value'] ?? '', 255);
 
 $where = [];
 $params = [];
@@ -42,6 +48,15 @@ if ($fPriority !== '') { $where[] = 'c.priority = :prio';  $params[':prio'] = $f
 if ($fFrom !== '')    { $where[] = 'c.created_at >= :from'; $params[':from'] = $fFrom . ' 00:00:00'; }
 if ($fTo !== '')      { $where[] = 'c.created_at <= :to';   $params[':to'] = $fTo . ' 23:59:59'; }
 if ($q !== '')        { $where[] = '(cu.name LIKE :q OR cu.phone LIKE :q OR c.consult_no LIKE :q OR c.tags LIKE :q)'; $params[':q'] = '%' . $q . '%'; }
+if ($hasConsultMeta && $fMetaKey !== '') {
+    if ($fMetaValue !== '') {
+        $where[] = 'EXISTS (SELECT 1 FROM consult_meta cm WHERE cm.consult_id = c.id AND cm.meta_key = :mkey AND cm.meta_value = :mval)';
+        $params[':mval'] = $fMetaValue;
+    } else {
+        $where[] = 'EXISTS (SELECT 1 FROM consult_meta cm WHERE cm.consult_id = c.id AND cm.meta_key = :mkey)';
+    }
+    $params[':mkey'] = $fMetaKey;
+}
 
 $sqlWhere = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
 $orderBy = 'ORDER BY c.id DESC';
@@ -55,8 +70,8 @@ try {
                    cu.name AS cust_name, cu.phone, s.site_name,
                    mg.name AS manager_name
             FROM consults c
-            JOIN customers cu ON cu.id = c.customer_id
-            JOIN sites s ON s.id = c.site_id
+            LEFT JOIN {$custTable} cu ON cu.id = c.customer_id
+            LEFT JOIN sites s ON s.id = c.site_id
             LEFT JOIN managers mg ON mg.id = c.manager_id
             $sqlWhere
             $orderBy LIMIT 200";
@@ -69,8 +84,8 @@ try {
                            cu.name AS cust_name, cu.phone, s.site_name,
                            mg.name AS manager_name
                     FROM consults c
-                    JOIN customers cu ON cu.id = c.customer_id
-                    JOIN sites s ON s.id = c.site_id
+                    LEFT JOIN {$custTable} cu ON cu.id = c.customer_id
+                    LEFT JOIN sites s ON s.id = c.site_id
                     LEFT JOIN managers mg ON mg.id = c.manager_id
                     WHERE 1=1
                     ORDER BY c.id DESC LIMIT 200";
@@ -95,6 +110,7 @@ $exportQs = http_build_query(array_filter([
     'site' => $fSite, 'status' => $fStatus, 'manager' => $fManager ?: '',
     'priority' => $fPriority, 'sort' => $fSort,
     'from' => $fFrom, 'to' => $fTo, 'q' => $q,
+    'meta_key' => $fMetaKey, 'meta_value' => $fMetaValue,
 ], fn($v) => $v !== '' && $v !== 0));
 ?>
 <form method="get" class="filters">
@@ -131,6 +147,10 @@ $exportQs = http_build_query(array_filter([
   <input type="date" name="from" value="<?= e($fFrom) ?>">
   <input type="date" name="to" value="<?= e($fTo) ?>">
   <input type="text" name="q" placeholder="이름·전화·상담번호·태그" value="<?= e($q) ?>">
+  <?php if ($hasConsultMeta): ?>
+    <input type="text" name="meta_key" placeholder="상세필드 key (예: internet_speed)" value="<?= e($fMetaKey) ?>" style="width:170px">
+    <input type="text" name="meta_value" placeholder="값 (예: 1G)" value="<?= e($fMetaValue) ?>" style="width:110px">
+  <?php endif; ?>
   <button type="submit" class="btn">검색</button>
   <a href="/admin/consults/" class="btn sub">초기화</a>
 </form>
@@ -195,10 +215,10 @@ $exportQs = http_build_query(array_filter([
             <?= e($r['category_ai'] ?? '-') ?> <?= $sentIcon[$r['sentiment'] ?? ''] ?? '' ?>
           </td>
           <td class="muted"><?= e(substr((string)$r['created_at'], 0, 16)) ?></td>
-          <td><?= e($r['site_name']) ?></td>
+          <td><?= e($r['site_name'] ?? '(미등록 사이트)') ?></td>
           <td><?= e($r['product_name'] ?? '-') ?></td>
-          <td><?= e($r['cust_name']) ?></td>
-          <td class="mono"><?= e($r['phone']) ?></td>
+          <td><?= e($r['cust_name'] ?? '(미등록 고객)') ?></td>
+          <td class="mono"><?= e($r['phone'] ?? '-') ?></td>
           <td><?= e($r['manager_name'] ?? '-') ?></td>
           <td><span class="badge st-<?= e($r['status']) ?>"><?= e(CONSULT_STATUSES[$r['status']] ?? $r['status']) ?></span></td>
         </tr>

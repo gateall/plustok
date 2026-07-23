@@ -18,7 +18,7 @@ define('BASE_URL', 'https://plustok.mycafe24.com');
 define('API_BASE', BASE_URL . '/api/v1');
 
 // 관리자 알림메일 (TASK_MAIL_NOTIFY.md)
-define('ADMIN_NOTIFY_EMAIL', 'adfull@naver.com'); // 상담접수 알림 수신자. 필요시 이 값만 변경
+define('ADMIN_NOTIFY_EMAIL', 'adfull@naver.com'); // 상담접수 알림 수신자
 define('MAIL_FROM', 'noreply@plustok.mycafe24.com'); // 발신자. Cafe24 mail() 발신 도메인과 일치 권장(스팸 방지)
 
 // 상담 상태 (SPEC.md C)

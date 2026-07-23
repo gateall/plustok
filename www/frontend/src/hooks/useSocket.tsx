@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from 'react';
 import { io, type Socket } from 'socket.io-client';
-import { getAccessToken } from '@/services/api.client';
+import { getAccessToken, refreshToken, setAccessToken } from '@/services/api.client';
 import type {
   ClientToServerEvents,
   ClientEventName,
@@ -56,6 +56,7 @@ export function useSocket(): UseSocketReturn {
 
 function useSocketInternal(): UseSocketReturn {
   const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
+  const authRetryRef = useRef(false);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -71,6 +72,7 @@ function useSocketInternal(): UseSocketReturn {
   const connect = useCallback(
     (token: string) => {
       disconnect();
+      authRetryRef.current = false;
       const socket = io(WS_URL, {
         path: '/socket.io',
         auth: { token },
@@ -90,8 +92,29 @@ function useSocketInternal(): UseSocketReturn {
       });
 
       socket.on('connect_error', (err) => {
-        setError(err.message);
         setIsConnected(false);
+        if (err.message === 'UNAUTHORIZED' && !authRetryRef.current) {
+          authRetryRef.current = true;
+          void refreshToken()
+            .then(() => {
+              const refreshed = getAccessToken();
+              if (refreshed) {
+                connect(refreshed);
+                return;
+              }
+              setAccessToken(null);
+              setError(err.message);
+            })
+            .catch(() => {
+              setAccessToken(null);
+              setError(err.message);
+            });
+          return;
+        }
+        setError(err.message);
+        if (err.message === 'UNAUTHORIZED') {
+          setAccessToken(null);
+        }
       });
 
       socket.on('error', (payload) => {

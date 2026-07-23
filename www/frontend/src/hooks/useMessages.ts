@@ -12,7 +12,7 @@ function mapWsMessage(msg: MessageReceivePayload): ChatMessageItem {
     id: msg.messageId,
     senderType: msg.senderType,
     senderId: msg.senderId,
-    content: msg.content,
+    content: msg.content ?? '',
     attachmentUrl: msg.attachmentUrl ?? null,
     createdAt: msg.createdAt,
     tempId: msg.tempId,

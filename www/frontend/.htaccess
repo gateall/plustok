@@ -1,4 +1,3 @@
-﻿# Upload to /frontend/.htaccess on server then rename
 # Cafe24 Apache — React SPA (/frontend/ 서브경로)
 RewriteEngine On
 RewriteBase /frontend/

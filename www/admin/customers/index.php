@@ -2,8 +2,10 @@
 declare(strict_types=1);
 /** 고객 목록 (SPEC.md B-2) */
 require_once __DIR__ . '/../../includes/auth.php';
+require_once __DIR__ . '/../../includes/util/CrmSchema.php';
 require_login();
 $pdo = db();
+$custTable = CrmSchema::legacyCustomerTable($pdo);
 
 $q = clean_str($_GET['q'] ?? '', 50);
 $where = ''; $params = [];
@@ -13,7 +15,7 @@ if ($q !== '') {
 }
 $sql = "SELECT cu.id, cu.customer_no, cu.name, cu.phone, cu.company,
                COUNT(c.id) AS consult_cnt, MAX(c.created_at) AS last_at
-        FROM customers cu
+        FROM {$custTable} cu
         LEFT JOIN consults c ON c.customer_id = cu.id
         $where
         GROUP BY cu.id ORDER BY last_at DESC LIMIT 200";

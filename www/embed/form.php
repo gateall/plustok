@@ -9,9 +9,13 @@ declare(strict_types=1);
  */
 
 require_once __DIR__ . '/../config/app.php';
+require_once __DIR__ . '/../config/acep.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/response.php';
 require_once __DIR__ . '/../includes/functions.php';
+require_once __DIR__ . '/../includes/util/SiteSchema.php';
+require_once __DIR__ . '/../includes/util/ProductSchema.php';
+require_once __DIR__ . '/../includes/util/SiteFieldSchema.php';
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
@@ -19,16 +23,21 @@ $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 function load_site(string $code): ?array
 {
     if ($code === '') return null;
-    $stmt = db()->prepare('SELECT * FROM sites WHERE site_code = :c AND status = 1 LIMIT 1');
+    $pdo = db();
+    $sql = 'SELECT * FROM sites WHERE site_code = :c AND ' . SiteSchema::activeSql($pdo) . ' LIMIT 1';
+    $stmt = $pdo->prepare($sql);
     $stmt->execute([':c' => $code]);
     $s = $stmt->fetch();
-    return $s ?: null;
+    return ($s && SiteSchema::isActive($s, $pdo)) ? $s : null;
 }
 
 /** 사이트 도메인 기반 CORS 허용 오리진 셋 */
 function allowed_origins(array $site): array
 {
-    $d = strtolower(trim($site['domain']));
+    $d = strtolower(trim((string)($site['domain'] ?? '')));
+    if ($d === '') {
+        return [];
+    }
     $d = preg_replace('#^https?://#', '', $d);
     $d = preg_replace('#/.*$#', '', $d);
     $bare = preg_replace('#^www\.#', '', $d);
@@ -66,7 +75,11 @@ function apply_cors(array $site): void
 function origin_is_registered(string $origin): bool
 {
     if ($origin === '') return false;
-    $rows = db()->query('SELECT domain FROM sites WHERE status = 1')->fetchAll();
+    $pdo = db();
+    if (!SiteSchema::hasDomain($pdo)) {
+        return false;
+    }
+    $rows = $pdo->query('SELECT domain FROM sites WHERE ' . SiteSchema::activeSql($pdo))->fetchAll();
     foreach ($rows as $r) {
         if (in_array($origin, allowed_origins(['domain' => $r['domain']]), true)) {
             return true;
@@ -91,8 +104,16 @@ if ($method === 'GET') {
     if (!$site) json_error('NOT_FOUND', '사이트를 찾을 수 없습니다.', 404);
     apply_cors($site);
 
-    $ps = db()->prepare('SELECT category, product_name FROM products WHERE brand = :b AND use_yn = 1 ORDER BY sort_order, id');
-    $ps->execute([':b' => $site['brand']]);
+    $pdo = db();
+    $ps = $pdo->prepare(
+        'SELECT category, product_name FROM products WHERE brand = :b AND '
+        . ProductSchema::activeSql($pdo) . ' AND ' . ProductSchema::siteScopeSql($pdo)
+        . ' ORDER BY sort_order, id'
+    );
+    $ps->execute(array_merge(
+        [':b' => $site['brand']],
+        ProductSchema::siteScopeParams($pdo, (int)$site['id'])
+    ));
     $products = $ps->fetchAll();
 
     json_success([
@@ -100,7 +121,9 @@ if ($method === 'GET') {
         'site_name' => $site['site_name'],
         'brand'     => $site['brand'],
         'persona'   => $site['persona'] ?? ('안녕하세요. ' . $site['site_name'] . ' 상담입니다.'),
+        'wsUrl'     => acep_chat_ws_url(),
         'products'  => array_map(fn($p) => ['category' => $p['category'], 'name' => $p['product_name']], $products),
+        'field_schema' => SiteFieldSchema::forSite($pdo, (int)$site['id']),
     ]);
 }
 

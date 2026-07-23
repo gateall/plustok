@@ -12,7 +12,11 @@ export function ConnectionBanner({ isConnected, error }: ConnectionBannerProps) 
         error ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-800'
       }`}
     >
-      {error ? `연결 오류: ${error}` : 'WebSocket 재연결 중…'}
+      {error === 'UNAUTHORIZED'
+        ? '연결 오류: JWT 인증 실패 — 로그아웃 후 다시 로그인하세요 (Render JWT_SECRET 동기화 확인)'
+        : error
+          ? `연결 오류: ${error}`
+          : 'WebSocket 재연결 중…'}
     </div>
   );
 }

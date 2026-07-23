@@ -2,9 +2,11 @@
 declare(strict_types=1);
 /** 대시보드 (SPEC.md B-1) */
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/util/CrmSchema.php';
 require_login();
 
 $pdo = db();
+$custTable = CrmSchema::legacyCustomerTable($pdo);
 
 // 요약 카드
 $total     = (int)$pdo->query("SELECT COUNT(*) FROM consults")->fetchColumn();
@@ -45,7 +47,7 @@ try {
         "SELECT c.consult_no, c.status, c.product_name, c.created_at, c.priority, c.lead_score, c.category_ai,
                 cu.name AS cust_name, cu.phone, s.site_name
          FROM consults c
-         JOIN customers cu ON cu.id = c.customer_id
+         JOIN {$custTable} cu ON cu.id = c.customer_id
          JOIN sites s ON s.id = c.site_id
          ORDER BY c.id DESC LIMIT 20"
     )->fetchAll();
@@ -54,7 +56,7 @@ try {
         "SELECT c.consult_no, c.status, c.product_name, c.created_at,
                 cu.name AS cust_name, cu.phone, s.site_name
          FROM consults c
-         JOIN customers cu ON cu.id = c.customer_id
+         JOIN {$custTable} cu ON cu.id = c.customer_id
          JOIN sites s ON s.id = c.site_id
          ORDER BY c.id DESC LIMIT 20"
     )->fetchAll();
@@ -65,24 +67,24 @@ require INC_DIR . '/header.php';
 ?>
 <h1 class="page">대시보드</h1>
 
-<div class="cards">
-  <div class="card"><div class="label">전체 상담</div><div class="value"><?= number_format($total) ?></div></div>
-  <div class="card"><div class="label">오늘 신규</div><div class="value"><?= number_format($todayNew) ?></div></div>
-  <div class="card"><div class="label">진행중</div><div class="value"><?= number_format($inProg) ?></div></div>
-  <div class="card"><div class="label">계약완료</div><div class="value"><?= number_format($contracted) ?></div></div>
+<div class="cards cards--kpi">
+  <div class="card card--glass"><div class="label">전체 상담</div><div class="value"><?= number_format($total) ?></div></div>
+  <div class="card card--glass"><div class="label">오늘 신규</div><div class="value"><?= number_format($todayNew) ?></div></div>
+  <div class="card card--glass"><div class="label">진행중</div><div class="value"><?= number_format($inProg) ?></div></div>
+  <div class="card card--glass"><div class="label">계약완료</div><div class="value"><?= number_format($contracted) ?></div></div>
 </div>
 
 <h2 style="font-size:16px;margin-top:24px;display:flex;align-items:center;gap:6px;color:#4f46e5">
   🤖 AI 종합 운영 대시보드 (STEP 9 / 14 프리뷰)
 </h2>
-<div class="cards" style="margin-bottom:24px">
-  <div class="card" style="border-left:4px solid #6366f1"><div class="label">오늘 AI 자동분석</div><div class="value" style="color:#4f46e5"><?= number_format($aiAnalyzedCount) ?>건</div></div>
-  <div class="card" style="border-left:4px solid #ef4444"><div class="label">🚨 긴급(URGENT) 대기</div><div class="value" style="color:#ef4444"><?= number_format($urgentCount) ?>건</div></div>
-  <div class="card" style="border-left:4px solid #059669"><div class="label">⭐ 계약유력(Lead ≥80)</div><div class="value" style="color:#059669"><?= number_format($highLeadCount) ?>건</div></div>
+<div class="cards cards--kpi">
+  <div class="card card--glass card--accent-indigo"><div class="label">오늘 AI 자동분석</div><div class="value"><?= number_format($aiAnalyzedCount) ?>건</div></div>
+  <div class="card card--glass card--accent-red"><div class="label">🚨 긴급(URGENT) 대기</div><div class="value"><?= number_format($urgentCount) ?>건</div></div>
+  <div class="card card--glass card--accent-green"><div class="label">⭐ 계약유력(Lead ≥80)</div><div class="value"><?= number_format($highLeadCount) ?>건</div></div>
 </div>
 
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px" class="grid2">
-  <div class="tablewrap">
+  <div class="tablewrap table-responsive">
     <h3 style="font-size:14px;margin:0 0 10px 0">📊 오늘 AI 자동분석 카테고리별 현황</h3>
     <table>
       <thead><tr><th>AI 분류 카테고리</th><th class="right">오늘 접수 건수</th></tr></thead>
@@ -96,7 +98,7 @@ require INC_DIR . '/header.php';
       </tbody>
     </table>
   </div>
-  <div class="tablewrap">
+  <div class="tablewrap table-responsive">
     <h3 style="font-size:14px;margin:0 0 10px 0">🏢 사이트별 상담 현황</h3>
     <table>
       <thead><tr><th>사이트</th><th>브랜드</th><th class="right">상담 건수</th></tr></thead>
@@ -110,7 +112,7 @@ require INC_DIR . '/header.php';
 </div>
 
 <h2 style="font-size:16px">최근 상담</h2>
-<div class="tablewrap">
+<div class="tablewrap table-responsive">
   <table>
     <thead><tr><th>상담번호</th><th>긴급도</th><th>점수/분류</th><th>사이트</th><th>상품</th><th>고객</th><th>연락처</th><th>상태</th><th>접수시각</th></tr></thead>
     <tbody>

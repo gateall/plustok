@@ -5,34 +5,42 @@ declare(strict_types=1);
  * 운영: config/acep.local.php 로 오버라이드 (gitignore 권장).
  */
 
-// JWT (HS256)
-const ACEP_JWT_SECRET = 'CHANGE_ME_IN_acep.local.php';
+// acep.local.php 먼저 로드 — const는 define()으로 재정의 불가하므로 define 기본값 패턴 사용
+$acepLocal = __DIR__ . '/acep.local.php';
+if (is_file($acepLocal)) {
+    require $acepLocal;
+}
+
+if (!defined('ACEP_JWT_SECRET')) {
+    define('ACEP_JWT_SECRET', 'CHANGE_ME_IN_acep.local.php');
+}
+if (!defined('ACEP_PII_KEY')) {
+    define('ACEP_PII_KEY', '');
+}
+if (!defined('ACEP_REDIS_URL')) {
+    define('ACEP_REDIS_URL', '');
+}
+if (!defined('ACEP_CHAT_SERVER_URL')) {
+    define('ACEP_CHAT_SERVER_URL', '');
+}
+if (!defined('ACEP_CHAT_INTERNAL_SECRET')) {
+    define('ACEP_CHAT_INTERNAL_SECRET', '');
+}
+
 const ACEP_JWT_ACCESS_TTL = 86400;   // 24h
 const ACEP_JWT_REFRESH_TTL = 604800; // 7d
+const ACEP_CUSTOMER_JWT_TTL = 14400; // 4h — embed chat widget session
 const ACEP_REFRESH_COOKIE = 'acep_refresh';
-
-// PII AES-256-GCM (32 bytes base64 or raw — acep.local.php에서 설정)
-const ACEP_PII_KEY = '';
 
 // 로그인 잠금 (API-001)
 const ACEP_LOGIN_MAX_FAIL = 3;
 const ACEP_LOGIN_LOCK_MINUTES = 30;
 
+// 비밀번호 재설정 토큰 유효시간
+const ACEP_RESET_TOKEN_TTL_MINUTES = 30;
+
 // bcrypt
 const ACEP_PASSWORD_COST = 12;
-
-// Redis (WebSocket pub/sub, AI cache) — acep.local.php 또는 REDIS_URL env
-const ACEP_REDIS_URL = '';
-
-/**
- * acep.local.php 가 있으면 상수를 재정의한다.
- */
-(function (): void {
-    $local = __DIR__ . '/acep.local.php';
-    if (is_file($local)) {
-        require $local;
-    }
-})();
 
 function acep_jwt_secret(): string
 {
@@ -52,4 +60,31 @@ function acep_pii_key(): string
         return ($bin !== false && strlen($bin) === 32) ? $bin : $k;
     }
     return hash('sha256', acep_jwt_secret(), true);
+}
+
+function acep_chat_server_url(): string
+{
+    if (defined('ACEP_CHAT_SERVER_URL') && ACEP_CHAT_SERVER_URL !== '') {
+        return ACEP_CHAT_SERVER_URL;
+    }
+    $env = getenv('ACEP_CHAT_SERVER_URL');
+    return is_string($env) && $env !== '' ? $env : '';
+}
+
+function acep_chat_internal_secret(): string
+{
+    if (defined('ACEP_CHAT_INTERNAL_SECRET') && ACEP_CHAT_INTERNAL_SECRET !== '') {
+        return ACEP_CHAT_INTERNAL_SECRET;
+    }
+    return acep_jwt_secret();
+}
+
+/** Chat Server WebSocket URL (http→ws, https→wss) */
+function acep_chat_ws_url(): string
+{
+    $url = acep_chat_server_url();
+    if ($url === '') {
+        return '';
+    }
+    return (string)preg_replace('#^http#i', 'ws', $url);
 }

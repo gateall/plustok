@@ -1,0 +1,98 @@
+/**
+ * PlusTok Premium UI/UX v2.0 — Design Tokens (Phase 1)
+ * Foundation: colors, spacing, typography, shadows, transitions, dark mode
+ */
+
+:root {
+  /* Colors — light */
+  --pt-bg: #f5f7fa;
+  --pt-surface: rgba(255, 255, 255, 0.72);
+  --pt-surface-solid: #ffffff;
+  --pt-ink: #1f2933;
+  --pt-muted: #64748b;
+  --pt-line: #e2e8f0;
+
+  --pt-primary: #2563eb;
+  --pt-primary-end: #4f46e5;
+  --pt-primary-hover-end: #1d4ed8;
+  --pt-success: #16a34a;
+  --pt-success-end: #15803d;
+  --pt-danger: #dc2626;
+  --pt-danger-end: #b91c1c;
+
+  --pt-navy: #1a2733;
+  --pt-navy2: #22303c;
+  --pt-blue: #2b6cb0;
+  --pt-blue2: #4299e1;
+
+  /* Typography */
+  --font-primary: 'Pretendard', system-ui, -apple-system, 'Apple SD Gothic Neo', sans-serif;
+  --font-secondary: 'SUIT', 'Pretendard', system-ui, sans-serif;
+  --pt-line-height: 1.7;
+  --pt-font-size-base: 15px;
+
+  /* Spacing */
+  --pt-space-xs: 8px;
+  --pt-space-sm: 12px;
+  --pt-space-md: 16px;
+  --pt-space-lg: 20px;
+  --pt-space-xl: 24px;
+  --pt-space-page: 18px;
+  --pt-space-gutter: 20px;
+  --pt-space-gutter-mobile: 16px;
+
+  /* Radius */
+  --pt-radius-sm: 8px;
+  --pt-radius-md: 16px;
+  --pt-radius-lg: 22px;
+  --pt-radius-pill: 999px;
+
+  /* Shadows */
+  --pt-shadow-card: 0 12px 30px rgba(0, 0, 0, 0.08);
+  --pt-shadow-card-hover: 0 18px 40px rgba(0, 0, 0, 0.12);
+  --pt-shadow-glow-primary: 0 0 20px rgba(37, 99, 235, 0.45);
+  --pt-shadow-glow-success: 0 0 20px rgba(22, 163, 74, 0.4);
+  --pt-shadow-glow-danger: 0 0 20px rgba(220, 38, 38, 0.4);
+  --pt-shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+
+  /* Motion */
+  --pt-transition: 0.25s ease;
+  --pt-transition-fast: 0.15s ease;
+
+  /* Layout */
+  --pt-max-width: 1440px;
+  --pt-nav-height: 44px;
+  --pt-topbar-height: 52px;
+
+  /* Glass */
+  --pt-glass-blur: 18px;
+  --pt-glass-border: rgba(255, 255, 255, 0.5);
+}
+
+[data-theme="dark"] {
+  --pt-bg: #0f1620;
+  --pt-surface: rgba(22, 31, 43, 0.85);
+  --pt-surface-solid: #161f2b;
+  --pt-ink: #e6edf3;
+  --pt-muted: #93a1b0;
+  --pt-line: #243244;
+  --pt-glass-border: rgba(255, 255, 255, 0.08);
+  --pt-shadow-card: 0 12px 30px rgba(0, 0, 0, 0.35);
+  --pt-shadow-card-hover: 0 18px 40px rgba(0, 0, 0, 0.45);
+  --pt-shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --pt-bg: #0f1620;
+    --pt-surface: rgba(22, 31, 43, 0.85);
+    --pt-surface-solid: #161f2b;
+    --pt-ink: #e6edf3;
+    --pt-muted: #93a1b0;
+    --pt-line: #243244;
+    --pt-glass-border: rgba(255, 255, 255, 0.08);
+    --pt-shadow-card: 0 12px 30px rgba(0, 0, 0, 0.35);
+    --pt-shadow-card-hover: 0 18px 40px rgba(0, 0, 0, 0.45);
+    --pt-shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+}

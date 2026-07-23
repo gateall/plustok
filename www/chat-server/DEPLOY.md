@@ -43,11 +43,27 @@
 3. `frontend/.env.production`: `VITE_WS_URL=wss://plustok.onrender.com`
 4. Render는 `PORT`를 자동 주입 — chat-server는 `process.env.PORT` 우선 사용
 
-검증:
+**JWT 동기화 (필수):** `JWT_SECRET` = `config/acep.local.php`의 `ACEP_JWT_SECRET`과 **바이트 단위 동일**.
 
-```bash
-curl -s https://plustok.onrender.com/health
-# backend.reachable, jwt.configured 확인
+| Render env | 값 |
+|------------|-----|
+| `JWT_SECRET` | acep.local.php `ACEP_JWT_SECRET` |
+| `BACKEND_URL` | `https://plustok.mycafe24.com/api/v1` |
+| `CORS_ALLOWED_ORIGINS` | `https://plustok.mycafe24.com` |
+
+재배포 후 검증:
+
+```powershell
+cd chat-server
+.\scripts\verify-render.ps1
+```
+
+구버전 배포 시 `/health`가 `{"status":"healthy","uptimeSec":...}` 만 반환 — **재배포 필요**.
+
+기대 응답:
+
+```json
+{"status":"healthy","backend":{"reachable":true},"jwt":{"configured":true},"redis":{...}}
 ```
 
 ---

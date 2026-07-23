@@ -3,8 +3,10 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../../config/acep.php';
 require_once __DIR__ . '/../api_envelope.php';
+require_once __DIR__ . '/../functions.php';
 require_once __DIR__ . '/../util/JwtHelper.php';
 require_once __DIR__ . '/../util/Uuid.php';
+require_once __DIR__ . '/../util/PiiEncryptor.php';
 require_once __DIR__ . '/../../config/acep.users.php';
 
 final class AuthService
@@ -77,6 +79,121 @@ final class AuthService
             log_api_error($e);
             acep_error('AUTH_TOKEN_ERROR', 'JWT 발급 실패. config/acep.local.php ACEP_JWT_SECRET 을 확인하세요.', 500);
         }
+    }
+
+    /**
+     * 이름+이메일로 아이디(login_id) 이메일 발송. 계정 존재 여부를 노출하지 않기 위해
+     * 항상 성공(void) 반환 — 실제 발송 여부는 조건부.
+     */
+    public function forgotId(string $name, string $email): void
+    {
+        $name = trim($name);
+        $email = trim($email);
+        if ($name === '' || $email === '') {
+            return;
+        }
+
+        foreach ($this->agents->findAllActiveWithEmail() as $row) {
+            $storedEmail = PiiEncryptor::decryptEmail((string)$row['email']);
+            if ($storedEmail === null) {
+                continue;
+            }
+            if (strcasecmp($storedEmail, $email) !== 0) {
+                continue;
+            }
+
+            $agent = $this->agents->findById((string)$row['id']);
+            if (!$agent || strcasecmp(trim((string)$agent['name']), $name) !== 0) {
+                continue;
+            }
+
+            $subject = '[' . APP_BRAND . '] 아이디 안내';
+            $body = "{$agent['name']}님,\n\n요청하신 아이디는 다음과 같습니다:\n\n로그인 ID: {$agent['login_id']}\n\n본인이 요청하지 않았다면 이 메일을 무시하세요.";
+            $this->sendAuthMail($storedEmail, $subject, $body, 'auth.forgot_id');
+            return;
+        }
+
+        log_error('auth.forgot_id', 'skip: no_match');
+    }
+
+    /**
+     * 이메일로 비밀번호 재설정 링크 발송. 계정 존재 여부를 노출하지 않기 위해
+     * 항상 성공(void) 반환 — 실제 발송 여부는 조건부.
+     */
+    public function forgotPassword(string $loginId, string $email): void
+    {
+        $loginId = trim($loginId);
+        $email = trim($email);
+
+        $agent = $this->agents->findByLoginId($loginId);
+        if (!$agent) {
+            log_error('auth.forgot_password', 'skip: agent_not_found id_hash=' . substr(hash('sha256', $loginId), 0, 12));
+            return;
+        }
+        if (empty($agent['email'])) {
+            log_error('auth.forgot_password', 'skip: no_email agent_id=' . substr((string)$agent['id'], 0, 8));
+            return;
+        }
+
+        $storedEmail = PiiEncryptor::decryptEmail((string)$agent['email']);
+        if ($storedEmail === null) {
+            log_error('auth.forgot_password', 'skip: decrypt_failed agent_id=' . substr((string)$agent['id'], 0, 8));
+            return;
+        }
+
+        if (strcasecmp($storedEmail, $email) !== 0) {
+            log_error('auth.forgot_password', 'skip: email_mismatch agent_id=' . substr((string)$agent['id'], 0, 8));
+            return;
+        }
+
+        $token = bin2hex(random_bytes(32));
+        $tokenHash = hash('sha256', $token);
+        $expiresAt = date('Y-m-d H:i:s.v', strtotime('+' . ACEP_RESET_TOKEN_TTL_MINUTES . ' minutes'));
+
+        try {
+            $this->agents->setResetToken((string)$agent['id'], $tokenHash, $expiresAt);
+        } catch (Throwable $e) {
+            log_api_error($e);
+            log_error('auth.forgot_password', 'skip: db_reset_token agent_id=' . substr((string)$agent['id'], 0, 8));
+            return;
+        }
+
+        $resetUrl = BASE_URL . '/frontend/#/reset-password?token=' . urlencode($token);
+        $subject = '[' . APP_BRAND . '] 비밀번호 재설정';
+        $body = "{$agent['name']}님,\n\n아래 링크에서 비밀번호를 재설정하세요 (유효시간 " . ACEP_RESET_TOKEN_TTL_MINUTES . "분):\n{$resetUrl}\n\n본인이 요청하지 않았다면 이 메일을 무시하세요.";
+
+        if ($this->sendAuthMail($storedEmail, $subject, $body, 'auth.forgot_password')) {
+            log_error('auth.forgot_password', 'ok: mail_sent agent_id=' . substr((string)$agent['id'], 0, 8));
+        }
+    }
+
+    public function resetPassword(string $token, string $newPassword): void
+    {
+        if (strlen($newPassword) < 8) {
+            acep_error('VALIDATION_ERROR', '비밀번호는 8자 이상이어야 합니다.', 400);
+        }
+
+        $tokenHash = hash('sha256', $token);
+        $agent = $this->agents->findByResetTokenHash($tokenHash);
+
+        if (!$agent
+            || empty($agent['reset_token_expires_at'])
+            || strtotime((string)$agent['reset_token_expires_at']) < time()
+        ) {
+            acep_error('INVALID_TOKEN', '재설정 링크가 유효하지 않거나 만료되었습니다.', 400);
+        }
+
+        $this->agents->updatePasswordHash(
+            (string)$agent['id'],
+            password_hash($newPassword, PASSWORD_BCRYPT, ['cost' => ACEP_PASSWORD_COST]),
+        );
+        $this->agents->clearResetToken((string)$agent['id']);
+        $this->safeAudit((string)$agent['id'], 'password.reset');
+    }
+
+    private function sendAuthMail(string $to, string $subject, string $body, string $context): bool
+    {
+        return acep_send_mail($to, $subject, $body, $context);
     }
 
     private function safeAudit(string $agentId, string $action): void

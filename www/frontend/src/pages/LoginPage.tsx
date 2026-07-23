@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Link, Navigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../features/auth/AuthProvider';
 
@@ -9,6 +9,7 @@ export default function LoginPage() {
   const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname ?? '/chat';
 
@@ -51,14 +52,35 @@ export default function LoginPage() {
 
         <label className="mb-6 block text-sm font-medium text-slate-700">
           비밀번호
-          <input
-            type="password"
-            className="mt-1 w-full rounded-lg border border-acep-border px-3 py-2"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="current-password"
-            required
-          />
+          <div className="relative mt-1">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              className="w-full rounded-lg border border-acep-border px-3 py-2 pr-10"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 hover:text-slate-600"
+              aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 표시'}
+              tabIndex={-1}
+            >
+              {showPassword ? (
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+                  <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-5.05 0-9.29-3.14-11-7 .9-2.02 2.32-3.76 4.06-5.06M9.9 4.24A10.94 10.94 0 0 1 12 4c5.05 0 9.29 3.14 11 7-.5 1.13-1.2 2.16-2.05 3.05M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+                  <line x1="1" y1="1" x2="23" y2="23" />
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+                  <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              )}
+            </button>
+          </div>
         </label>
 
         <button
@@ -68,6 +90,16 @@ export default function LoginPage() {
         >
           {submitting ? '로그인 중…' : '로그인'}
         </button>
+
+        <div className="mt-4 flex items-center justify-center gap-3 text-sm text-slate-500">
+          <Link to="/find-id" className="hover:text-acep-primary hover:underline">
+            아이디 찾기
+          </Link>
+          <span className="text-slate-300">|</span>
+          <Link to="/forgot-password" className="hover:text-acep-primary hover:underline">
+            비밀번호 찾기
+          </Link>
+        </div>
       </form>
     </div>
   );

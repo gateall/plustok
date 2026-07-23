@@ -15,8 +15,9 @@ CREATE TABLE IF NOT EXISTS sites (
   created_at   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT IGNORE INTO sites (id, site_code, site_name, brand, use_yn)
-VALUES (1, 'acep-default', 'PlusTok ACEP', 'PlusTok', 1);
+-- 'acep-default' 시드 row는 migrate.php에서 sites.use_yn 컬럼 존재 여부를 확인한 뒤 조건부로 넣는다.
+-- (install.php 스키마의 sites 테이블은 use_yn이 아니라 status를 쓰므로, 여기서 그대로 실행하면
+--  "Unknown column 'use_yn'" 에러가 난다.)
 
 CREATE TABLE IF NOT EXISTS crm_customers (
   id           BIGINT AUTO_INCREMENT PRIMARY KEY,

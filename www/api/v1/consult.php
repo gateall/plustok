@@ -10,6 +10,11 @@ require_once __DIR__ . '/../../includes/response.php';
 require_once __DIR__ . '/../../includes/db.php';
 require_once __DIR__ . '/../../includes/functions.php';
 require_once __DIR__ . '/../../includes/api_auth.php';
+require_once __DIR__ . '/../../migrations/lib.php';
+require_once __DIR__ . '/../../includes/util/CrmSchema.php';
+require_once __DIR__ . '/../../includes/util/ConsultSchema.php';
+require_once __DIR__ . '/../../includes/util/ProductSchema.php';
+require_once __DIR__ . '/../../includes/util/ConsultMeta.php';
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     json_error('METHOD_NOT_ALLOWED', 'POST만 허용됩니다.', 405);
@@ -46,6 +51,9 @@ if (!$agree) {
 // --- 화이트리스트 입력 ---
 $company  = clean_str($in['company'] ?? '', 120);
 $email    = clean_str($in['email'] ?? '', 150);
+if ($email === '') {
+    json_error('INVALID_PARAM', '이메일을 입력해주세요.');
+}
 $zipcode  = clean_str($in['zipcode'] ?? '', 10);
 $region   = clean_str($in['region'] ?? '', 50);
 $address  = clean_str($in['address'] ?? '', 255);
@@ -64,26 +72,57 @@ $detail = $in['detail'] ?? null;
 $detailJson = (is_array($detail) && $detail) ? json_encode($detail, JSON_UNESCAPED_UNICODE) : null;
 
 $pdo = db();
+
+// --- 필드 스키마 기반 필수값 검증 (옵트인: 해당 사이트/상품에 스키마가 명시된 경우에만 동작) ---
+require_once __DIR__ . '/../../includes/util/SiteFieldSchema.php';
+if (SiteFieldSchema::tableExists($pdo)) {
+    $schemaRows = SiteFieldSchema::forSite($pdo, (int)$site['id']);
+    $resolvedFields = SiteFieldSchema::resolve($schemaRows, $category, $product);
+    foreach ($resolvedFields as $f) {
+        if (empty($f['required'])) {
+            continue;
+        }
+        $fKey = (string)($f['key'] ?? '');
+        if ($fKey === '') {
+            continue;
+        }
+        $fVal = is_array($detail) ? ($detail[$fKey] ?? '') : '';
+        if (trim((string)$fVal) === '') {
+            json_error('INVALID_PARAM', (string)($f['label'] ?? $fKey) . '을(를) 입력해주세요.');
+        }
+    }
+}
+
+$custTable = CrmSchema::legacyCustomerTable($pdo);
+$chatPayload = null;
 try {
     $pdo->beginTransaction();
 
     // --- 고객 중복 확인(phone) ---
-    $stmt = $pdo->prepare('SELECT id FROM customers WHERE phone = :p LIMIT 1');
+    $stmt = $pdo->prepare("SELECT id FROM {$custTable} WHERE phone = :p LIMIT 1");
     $stmt->execute([':p' => $phone]);
     $customerId = $stmt->fetchColumn();
 
     if (!$customerId) {
-        $customerNo = next_customer_no($pdo);
-        $ins = $pdo->prepare(
-            'INSERT INTO customers (customer_no, name, phone, company, email, zipcode, address, region, memo)
-             VALUES (:no, :name, :phone, :company, :email, :zip, :addr, :region, :memo)'
-        );
-        $ins->execute([
-            ':no' => $customerNo, ':name' => $name, ':phone' => $phone,
-            ':company' => $company ?: null, ':email' => $email ?: null,
-            ':zip' => $zipcode ?: null, ':addr' => $address ?: null,
-            ':region' => $region ?: null, ':memo' => null,
+        $customerNo = next_customer_no($pdo, $custTable);
+        $custInsert = ConsultSchema::buildInsert($pdo, $custTable, [
+            'customer_no' => $customerNo,
+            'name'        => $name,
+            'phone'       => $phone,
+            'company'     => $company ?: null,
+            'email'       => $email ?: null,
+            'zipcode'     => $zipcode ?: null,
+            'address'     => $address ?: null,
+            'memo'        => null,
+        ], [
+            'region' => $region ?: null,
         ]);
+        $ins = $pdo->prepare(
+            'INSERT INTO ' . $custTable
+            . ' (' . implode(', ', $custInsert['columns']) . ')'
+            . ' VALUES (' . implode(', ', $custInsert['placeholders']) . ')'
+        );
+        $ins->execute($custInsert['params']);
         $customerId = (int)$pdo->lastInsertId();
     } else {
         $customerId = (int)$customerId;
@@ -93,9 +132,14 @@ try {
     $productId = null;
     if ($product !== '') {
         $ps = $pdo->prepare(
-            'SELECT id FROM products WHERE brand = :b AND product_name = :n AND use_yn = 1 LIMIT 1'
+            'SELECT id FROM products WHERE brand = :b AND product_name = :n AND '
+            . ProductSchema::activeSql($pdo) . ' AND ' . ProductSchema::siteScopeSql($pdo)
+            . ' LIMIT 1'
         );
-        $ps->execute([':b' => $site['brand'], ':n' => $product]);
+        $ps->execute(array_merge(
+            [':b' => $site['brand'], ':n' => $product],
+            ProductSchema::siteScopeParams($pdo, (int)$site['id'])
+        ));
         $pid = $ps->fetchColumn();
         if ($pid) {
             $productId = (int)$pid;
@@ -104,37 +148,110 @@ try {
 
     // --- 상담 insert ---
     $consultNo = next_consult_no($pdo);
-    $ic = $pdo->prepare(
-        'INSERT INTO consults
-           (consult_no, customer_id, site_id, product_id, category, product_name,
-            status, detail_json, memo, referer, device)
-         VALUES
-           (:no, :cid, :sid, :pid, :cat, :pname, :status, :detail, :memo, :referer, :device)'
-    );
-    $ic->execute([
-        ':no' => $consultNo, ':cid' => $customerId, ':sid' => (int)$site['id'],
-        ':pid' => $productId, ':cat' => $category ?: null, ':pname' => $product ?: null,
-        ':status' => 'new', ':detail' => $detailJson, ':memo' => $memo ?: null,
-        ':referer' => $referer ?: null, ':device' => $device ?: null,
+    $initialStatus = ConsultSchema::initialStatus($pdo);
+    $consultInsert = ConsultSchema::buildInsert($pdo, 'consults', [
+        'consult_no'   => $consultNo,
+        'customer_id'  => $customerId,
+        'site_id'      => (int)$site['id'],
+        'product_id'   => $productId,
+        'category'     => $category ?: null,
+        'product_name' => $product ?: null,
+        'status'       => $initialStatus,
+        'detail_json'  => $detailJson,
+        'memo'         => $memo ?: null,
+    ], [
+        'referer' => $referer ?: null,
+        'device'  => $device ?: null,
     ]);
+    $ic = $pdo->prepare(
+        'INSERT INTO consults ('
+        . implode(', ', $consultInsert['columns'])
+        . ') VALUES ('
+        . implode(', ', $consultInsert['placeholders'])
+        . ')'
+    );
+    $ic->execute($consultInsert['params']);
     $consultId = (int)$pdo->lastInsertId();
 
-    // --- 최초 상태 이력 ---
-    $ih = $pdo->prepare(
-        'INSERT INTO consult_history (consult_id, from_status, to_status, note)
-         VALUES (:cid, NULL, :to, :note)'
-    );
-    $ih->execute([':cid' => $consultId, ':to' => 'new', ':note' => '상담 접수']);
+    ConsultSchema::recordInitialHistory($pdo, $consultId, $initialStatus);
+    ConsultMeta::store($pdo, $consultId, is_array($detail) ? $detail : null);
 
     $pdo->commit();
 } catch (Throwable $ex) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
-    log_error('consult.php', $ex->getMessage());
+    log_error(
+        'consult.php',
+        sprintf(
+            '%s: %s in %s:%d',
+            $ex::class,
+            $ex->getMessage(),
+            basename($ex->getFile()),
+            $ex->getLine(),
+        ),
+    );
     json_error('SERVER_ERROR', '접수 처리 중 오류가 발생했습니다.', 500);
+}
+
+// 채팅방 생성은 별도 시도 — 실패해도 상담 접수 자체는 이미 완료된 상태로 유지 (마이그레이션 미완료 시 안전장치)
+try {
+    if (!acep_table_exists($pdo, 'chat_rooms')) {
+        log_error('consult.php:chat_room', sprintf(
+            'skipped consult_id=%d: chat_rooms table missing',
+            $consultId,
+        ));
+    } else {
+        require_once __DIR__ . '/../../includes/consult_chat.php';
+        $consultChat = acep_consult_chat_service($pdo);
+        if (!$consultChat->chatTablesAvailable()) {
+            log_error('consult.php:chat_room', sprintf(
+                'skipped consult_id=%d customer_id=%d: chatTablesAvailable=false cust_table=%s',
+                $consultId,
+                $customerId,
+                CrmSchema::legacyCustomerTable($pdo),
+            ));
+        } else {
+            $inquiry = $category ?: ($product ?: '상담신청');
+            $chatPayload = $consultChat->createRoomForConsult(
+                $customerId,
+                $consultId,
+                $name,
+                $phone,
+                $email !== '' ? $email : null,
+                $inquiry,
+                $memo !== '' ? $memo : null,
+                'web',
+            );
+            if ($chatPayload === null) {
+                log_error('consult.php:chat_room', sprintf(
+                    'skipped consult_id=%d customer_id=%d: createRoomForConsult returned null',
+                    $consultId,
+                    $customerId,
+                ));
+            }
+        }
+    }
+} catch (Throwable $ex) {
+    log_error(
+        'consult.php:chat_room',
+        sprintf(
+            'consult_id=%d customer_id=%d | %s: %s in %s:%d',
+            $consultId,
+            $customerId,
+            $ex::class,
+            $ex->getMessage(),
+            basename($ex->getFile()),
+            $ex->getLine(),
+        ),
+    );
+    $chatPayload = null;
 }
 
 notify_new_consult($site, $consultNo, $name, $phone, $product, $memo);
 
-json_success(['consult_no' => $consultNo], '상담 접수가 완료되었습니다.');
+$response = ['consult_no' => $consultNo];
+if ($chatPayload !== null) {
+    $response = array_merge($response, $chatPayload);
+}
+json_success($response, '상담 접수가 완료되었습니다.');

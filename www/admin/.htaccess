@@ -1,0 +1,5 @@
+RewriteEngine On
+
+# Cafe24/Apache: pass Authorization header to PHP (sso.php Bearer JWT)
+RewriteCond %{HTTP:Authorization} .
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]

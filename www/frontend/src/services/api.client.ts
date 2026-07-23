@@ -1,12 +1,26 @@
 const API_BASE = import.meta.env.VITE_API_BASE ?? '/api/v1';
+const TOKEN_STORAGE_KEY = 'acep_access_token';
 
-let accessToken: string | null = null;
+let accessToken: string | null =
+  typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(TOKEN_STORAGE_KEY) : null;
 
 export function setAccessToken(token: string | null): void {
   accessToken = token;
+  if (typeof sessionStorage === 'undefined') return;
+  if (token) {
+    sessionStorage.setItem(TOKEN_STORAGE_KEY, token);
+  } else {
+    sessionStorage.removeItem(TOKEN_STORAGE_KEY);
+  }
 }
 
 export function getAccessToken(): string | null {
+  if (accessToken) {
+    return accessToken;
+  }
+  if (typeof sessionStorage !== 'undefined') {
+    accessToken = sessionStorage.getItem(TOKEN_STORAGE_KEY);
+  }
   return accessToken;
 }
 
@@ -18,7 +32,11 @@ async function parseResponse<T>(res: Response): Promise<T> {
   return json.data;
 }
 
-export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+export async function apiFetch<T>(
+  path: string,
+  init: RequestInit = {},
+  retried = false,
+): Promise<T> {
   const headers = new Headers(init.headers);
   headers.set('Content-Type', 'application/json');
   if (accessToken) {
@@ -31,12 +49,18 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
     credentials: 'include',
   });
 
-  if (res.status === 401 && path !== '/auth/login' && path !== '/auth/refresh') {
+  if (
+    res.status === 401 &&
+    !retried &&
+    path !== '/auth/login' &&
+    path !== '/auth/refresh'
+  ) {
     try {
       await refreshToken();
-      return apiFetch(path, init);
+      return apiFetch(path, init, true);
     } catch {
       setAccessToken(null);
+      throw new Error('Session expired. Please log in again.');
     }
   }
 

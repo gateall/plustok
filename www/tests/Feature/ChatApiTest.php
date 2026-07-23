@@ -55,4 +55,46 @@ final class ChatApiTest extends ApiTestCase
         ], $token);
         $this->assertTrue($res->isSuccess());
     }
+
+    public function test_customer_can_access_own_room_only(): void
+    {
+        $adminToken = $this->loginAdmin();
+        $roomA = $this->createRoom($adminToken);
+        $roomB = $this->createRoomWithPhone($adminToken, '01099998888');
+
+        $roomARes = $this->api('GET', '/chats/' . $roomA, null, $adminToken);
+        $this->assertTrue($roomARes->isSuccess());
+        $customerId = (string)$roomARes->body['data']['customer']['id'];
+
+        $customerToken = $this->customerToken($customerId);
+
+        $own = $this->api('GET', '/chats/' . $roomA, null, $customerToken);
+        $this->assertTrue($own->isSuccess(), $own->body['error']['message'] ?? '');
+
+        $other = $this->api('GET', '/chats/' . $roomB, null, $customerToken);
+        $this->assertFalse($other->isSuccess());
+        $this->assertSame(403, $other->httpCode);
+    }
+
+    private function createRoomWithPhone(string $token, string $phone): string
+    {
+        $res = $this->api('POST', '/chats/rooms', [
+            'customerName'  => '다른고객',
+            'customerPhone' => $phone,
+            'inquiryType'   => '설치문의',
+            'channel'       => 'web',
+        ], $token);
+        $this->assertTrue($res->isSuccess(), $res->body['error']['message'] ?? '');
+        return (string)$res->body['data']['roomId'];
+    }
+
+    private function customerToken(string $customerId): string
+    {
+        require_once dirname(__DIR__, 2) . '/includes/util/JwtHelper.php';
+        return \JwtHelper::encode([
+            'sub'  => $customerId,
+            'role' => 'customer',
+            'name' => 'Test Customer',
+        ], 3600);
+    }
 }

@@ -17,14 +17,6 @@ CREATE TABLE IF NOT EXISTS agent_notifications (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   COMMENT='상담원 알림';
 
--- agents.settings_json (idempotent)
-SET @col_exists = (
-    SELECT COUNT(*) FROM information_schema.columns
-    WHERE table_schema = DATABASE() AND table_name = 'agents' AND column_name = 'settings_json'
-);
-SET @sql = IF(@col_exists = 0,
-    'ALTER TABLE agents ADD COLUMN settings_json JSON NULL COMMENT ''Agent UI preferences'' AFTER avatar_url',
-    'SELECT 1');
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
+-- agents.settings_json 컬럼 추가는 migrate.php의 acep_add_column_if_missing()에서 처리한다.
+-- (MySQL의 PREPARE/EXECUTE 동적 SQL을 PDO exec()로 실행하면 "Cannot execute queries while
+--  other unbuffered queries are active" 에러가 나는 조합이 있어, PHP 쪽 조건 체크로 옮김)

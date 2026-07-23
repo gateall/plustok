@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../util/PiiEncryptor.php';
 require_once __DIR__ . '/../util/Uuid.php';
 require_once __DIR__ . '/../api_envelope.php';
+require_once __DIR__ . '/../ws_publish.php';
 
 final class ChatService
 {
@@ -153,6 +154,20 @@ final class ChatService
 
         $this->audit->agentAction($agentId, 'room.create', 'chat_room', $roomId);
 
+        $custPublic = $this->customers->maskRow($customer);
+        $assignedAgentId = in_array($role, ['agent', 'admin'], true) ? $agentId : null;
+        acep_ws_publish_broadcast('room:update', [
+            'roomId'              => $roomId,
+            'status'              => 'new',
+            'customerName'        => $custPublic['name'],
+            'inquiryType'         => $inquiry,
+            'lastMessage'         => $initial !== '' ? $initial : null,
+            'updatedAt'           => date('c'),
+            'unreadCount'         => $initial !== '' ? 1 : 0,
+            'agentId'             => $assignedAgentId,
+            'contractProbability' => 0,
+        ]);
+
         return [
             'roomId'     => $roomId,
             'customerId' => $customer['id'],
@@ -226,13 +241,17 @@ final class ChatService
         }
 
         $readerType = (string)($body['readerType'] ?? 'agent');
-        if (!in_array($readerType, ['agent', 'customer'], true)) {
-            acep_error('VALIDATION_ERROR', 'readerType은 agent 또는 customer입니다.', 400);
-        }
-
-        $readerId = $readerType === 'agent' ? $agentId : (string)($body['readerId'] ?? '');
-        if ($readerId === '') {
-            acep_error('VALIDATION_ERROR', 'readerId가 필요합니다.', 400);
+        if ($role === 'customer') {
+            $readerType = 'customer';
+            $readerId = $agentId;
+        } else {
+            if (!in_array($readerType, ['agent', 'customer'], true)) {
+                acep_error('VALIDATION_ERROR', 'readerType은 agent 또는 customer입니다.', 400);
+            }
+            $readerId = $readerType === 'agent' ? $agentId : (string)($body['readerId'] ?? '');
+            if ($readerId === '') {
+                acep_error('VALIDATION_ERROR', 'readerId가 필요합니다.', 400);
+            }
         }
 
         $count = $this->readStatus->markRead($roomId, $readerType, $readerId, $messageIds);
@@ -241,17 +260,32 @@ final class ChatService
     }
 
     /** @return array<string,mixed> */
-    public function requireRoomAccess(string $roomId, string $agentId, string $role): array
+    public function requireRoomAccess(string $roomId, string $userId, string $role): array
     {
         $room = $this->rooms->findById($roomId);
         if (!$room) {
             acep_error('ROOM_NOT_FOUND', '상담방을 찾을 수 없습니다.', 404);
         }
-        if (!in_array($role, ['admin', 'operator'], true)) {
-            if ($room['status'] !== 'new' && (string)($room['agent_id'] ?? '') !== $agentId) {
+
+        if (in_array($role, ['admin', 'operator'], true)) {
+            return $room;
+        }
+
+        if ($role === 'customer') {
+            if ((string)($room['customer_id'] ?? '') !== (string)$userId) {
                 acep_error('FORBIDDEN', '상담방 접근 권한이 없습니다.', 403);
             }
+            return $room;
         }
-        return $room;
+
+        // agent: 배정된 방 + 미배정(new) 큐
+        if ((string)($room['agent_id'] ?? '') === $userId) {
+            return $room;
+        }
+        if ($room['status'] === 'new') {
+            return $room;
+        }
+
+        acep_error('FORBIDDEN', '상담방 접근 권한이 없습니다.', 403);
     }
 }

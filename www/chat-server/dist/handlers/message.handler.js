@@ -4,7 +4,7 @@ export function registerMessageHandlers(io) {
     io.on('connection', (socket) => {
         socket.on('message:send', async (payload) => {
             const roomId = payload?.roomId?.trim();
-            const content = payload?.content?.trim();
+            const content = (payload?.content ?? payload?.message ?? '').trim();
             if (!roomId || !content) {
                 socket.emit('error', {
                     code: 'VALIDATION_ERROR',

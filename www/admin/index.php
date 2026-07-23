@@ -27,6 +27,12 @@ if ($hasManager === 0 && $hasAgents === 0) {
     exit;
 }
 
+// 통합 로그인: 화면은 /frontend/#/login 하나만 사용, 이 페이지는 세션 처리(SSO)만 담당
+if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+    header('Location: /frontend/#/login');
+    exit;
+}
+
 $error = '';
 $now = time();
 $lockUntil = (int)($_SESSION['login_lock_until'] ?? 0);
@@ -84,6 +90,18 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                     'name' => $mgr['name'],
                     'role' => $mgr['role'],
                 ];
+                // agents 테이블에 동일 login_id가 있으면 WebSocket/API용 JWT 세션도 세팅
+                if (acep_table_exists($pdo, 'agents')) {
+                    require_once __DIR__ . '/../config/acep.users.php';
+                    $legacyAgentRepo = new AgentRepository($pdo);
+                    $legacyAgent = $legacyAgentRepo->findByLoginId((string)$mgr['login_id']);
+                    if ($legacyAgent) {
+                        $legacyUserManager = new AcepUserManager($legacyAgentRepo);
+                        $legacyPublicUser = $legacyUserManager->toPublicUser($legacyAgent);
+                        $_SESSION['acep_user'] = $legacyPublicUser;
+                        $_SESSION['acep_jwt'] = $legacyUserManager->createAccessToken($legacyPublicUser);
+                    }
+                }
                 $_SESSION['login_fail'] = 0;
                 $pdo->prepare('UPDATE managers SET last_login = NOW() WHERE id = :id')
                     ->execute([':id' => (int)$mgr['id']]);

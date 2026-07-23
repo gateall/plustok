@@ -60,7 +60,8 @@ final class MessageService
     {
         $room = $this->chatSvc->requireRoomAccess($roomId, $agentId, $role);
 
-        $content = trim((string)($body['content'] ?? ''));
+        // DB column is chat_messages.content — accept legacy JSON key "message" on input only.
+        $content = trim((string)($body['content'] ?? $body['message'] ?? ''));
         if ($content === '') {
             acep_error('VALIDATION_ERROR', 'content가 필요합니다.', 400);
         }
@@ -106,6 +107,14 @@ final class MessageService
             acep_ws_publish_ai_update($roomId, $recId, 'pending');
             if ($this->aiRouter !== null) {
                 AiRouterService::dispatchAfterResponse($this->aiRouter, $roomId, $recId, $msgId);
+            }
+
+            if ($room['status'] === 'new' && empty($room['agent_id'])) {
+                acep_ws_publish_broadcast('room:update', [
+                    'roomId'      => $roomId,
+                    'lastMessage' => $content,
+                    'updatedAt'   => date('c'),
+                ]);
             }
         }
         $this->audit->agentAction($agentId, 'message.create', 'chat_message', $msgId, ['roomId' => $roomId]);

@@ -104,6 +104,43 @@ final class AgentRepository
         return $st->rowCount() > 0;
     }
 
+    /** @return array<int, array<string,mixed>> */
+    public function findAllActiveWithEmail(): array
+    {
+        $st = $this->pdo->query(
+            "SELECT id, login_id, email FROM agents WHERE deleted_at IS NULL AND email IS NOT NULL AND email <> ''"
+        );
+        return $st->fetchAll() ?: [];
+    }
+
+    public function setResetToken(string $id, string $tokenHash, string $expiresAt): void
+    {
+        $st = $this->pdo->prepare(
+            'UPDATE agents SET reset_token_hash = :hash, reset_token_expires_at = :exp,
+             updated_at = CURRENT_TIMESTAMP(3) WHERE id = :id'
+        );
+        $st->execute([':hash' => $tokenHash, ':exp' => $expiresAt, ':id' => $id]);
+    }
+
+    public function findByResetTokenHash(string $tokenHash): ?array
+    {
+        $st = $this->pdo->prepare(
+            'SELECT * FROM agents WHERE reset_token_hash = :hash AND deleted_at IS NULL LIMIT 1'
+        );
+        $st->execute([':hash' => $tokenHash]);
+        $row = $st->fetch();
+        return $row ?: null;
+    }
+
+    public function clearResetToken(string $id): void
+    {
+        $st = $this->pdo->prepare(
+            'UPDATE agents SET reset_token_hash = NULL, reset_token_expires_at = NULL,
+             updated_at = CURRENT_TIMESTAMP(3) WHERE id = :id'
+        );
+        $st->execute([':id' => $id]);
+    }
+
     /** @param array<string,mixed> $settings */
     public function updateSettingsJson(string $id, array $settings): void
     {

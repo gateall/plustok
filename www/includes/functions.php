@@ -81,11 +81,11 @@ function next_consult_no(PDO $pdo): string
 }
 
 /** 고객번호 생성: M + YYYYMMDD + 4자리. */
-function next_customer_no(PDO $pdo): string
+function next_customer_no(PDO $pdo, string $table = 'customers'): string
 {
     $prefix = 'M' . date('Ymd');
     $stmt = $pdo->prepare(
-        'SELECT COUNT(*) AS c FROM customers WHERE customer_no LIKE :p'
+        "SELECT COUNT(*) AS c FROM {$table} WHERE customer_no LIKE :p"
     );
     $stmt->execute([':p' => $prefix . '%']);
     $seq = ((int)$stmt->fetchColumn()) + 1;
@@ -100,6 +100,23 @@ function log_error(string $context, string $message): void
     }
     $line = sprintf("[%s] %s: %s\n", date('c'), $context, $message);
     @file_put_contents(LOG_PATH . '/error-' . date('Ymd') . '.log', $line, FILE_APPEND | LOCK_EX);
+}
+
+/** Cafe24 PHP mail() — SPF 정렬 From 헤더 + 실패 로그 (수신자 원문은 남기지 않음) */
+function acep_send_mail(string $to, string $subject, string $body, string $context = 'mail'): bool
+{
+    $encodedSubject = '=?UTF-8?B?' . base64_encode($subject) . '?=';
+    $headers = 'From: ' . APP_BRAND . ' <' . MAIL_FROM . ">\r\n"
+             . 'Reply-To: ' . MAIL_FROM . "\r\n"
+             . "MIME-Version: 1.0\r\n"
+             . "Content-Type: text/plain; charset=UTF-8\r\n"
+             . 'X-Mailer: PlusTok-ACEP';
+
+    $ok = @mail($to, $encodedSubject, $body, $headers);
+    if (!$ok) {
+        log_error($context, 'mail() returned false to_hash=' . substr(hash('sha256', strtolower($to)), 0, 12));
+    }
+    return $ok;
 }
 
 /**
@@ -129,7 +146,7 @@ function rate_limit_ok(string $key): bool
 function notify_new_consult(array $site, string $consultNo, string $name, string $phone, string $product, string $memo): void
 {
     try {
-        $subject = '=?UTF-8?B?' . base64_encode("[PlusTok] 신규 상담접수 - {$site['site_name']} ({$consultNo})") . '?=';
+        $subject = "[PlusTok] 신규 상담접수 - {$site['site_name']} ({$consultNo})";
         $lines = [
             "사이트: {$site['site_name']} ({$site['site_code']})",
             "접수번호: {$consultNo}",
@@ -144,10 +161,7 @@ function notify_new_consult(array $site, string $consultNo, string $name, string
         $lines[] = '관리자 확인: https://plustok.mycafe24.com/admin/consults/';
         $body = implode("\r\n", $lines);
 
-        $headers = "From: PlusTok CRM <" . MAIL_FROM . ">\r\n"
-                 . "Content-Type: text/plain; charset=UTF-8\r\n";
-
-        @mail(ADMIN_NOTIFY_EMAIL, $subject, $body, $headers);
+        acep_send_mail(ADMIN_NOTIFY_EMAIL, $subject, $body, 'notify_mail');
     } catch (Throwable $e) {
         log_error('notify_mail', $e->getMessage());
     }

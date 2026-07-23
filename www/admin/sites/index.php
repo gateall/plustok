@@ -150,6 +150,7 @@ require INC_DIR . '/header.php';
           <td><?= ((int)$r['status'] === 1) ? '사용' : '<span class="muted">중지</span>' ?></td>
           <td style="white-space:nowrap">
             <a href="?edit=<?= (int)$r['id'] ?>#siteform" class="btn" style="padding:5px 8px;font-size:12px">수정</a>
+            <a href="/admin/site_fields/index.php?site_id=<?= (int)$r['id'] ?>" class="btn sub" style="padding:5px 8px;font-size:12px">필드스키마</a>
             <form method="post" style="display:inline" onsubmit="return confirm('API Key를 재발급하면 기존 키는 즉시 무효화됩니다. 계속할까요?')">
               <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
               <input type="hidden" name="action" value="regen">

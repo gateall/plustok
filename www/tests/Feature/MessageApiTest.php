@@ -44,4 +44,21 @@ final class MessageApiTest extends ApiTestCase
         ], $token);
         $this->assertSame(201, $res->http);
     }
+
+    public function test_legacy_message_key_maps_to_content(): void
+    {
+        $token = $this->loginAdmin();
+        $roomId = $this->createRoom($token);
+
+        $post = $this->api('POST', '/chats/' . $roomId . '/messages', [
+            'message' => 'legacy message key',
+            'source'  => 'manual',
+        ], $token);
+        $this->assertSame(201, $post->http);
+
+        $list = $this->api('GET', '/chats/' . $roomId . '/messages', null, $token);
+        $this->assertTrue($list->isSuccess());
+        $last = end($list->body['data']['messages']);
+        $this->assertSame('legacy message key', $last['content'] ?? null);
+    }
 }

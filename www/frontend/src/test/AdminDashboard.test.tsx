@@ -36,9 +36,10 @@ function renderDashboard() {
 describe('AdminDashboard', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('renders 5 dashboard sections', async () => {
+  it('renders dashboard sections including today tasks', async () => {
     renderDashboard();
     expect(await screen.findByText('실시간 현황')).toBeInTheDocument();
+    expect(screen.getByText('오늘 할 일')).toBeInTheDocument();
     expect(screen.getByText('상담원 현황')).toBeInTheDocument();
     expect(screen.getByText('AI 성과')).toBeInTheDocument();
     expect(screen.getByText('고객 분석')).toBeInTheDocument();
@@ -46,9 +47,16 @@ describe('AdminDashboard', () => {
     expect(screen.getByText('Live Monitor')).toBeInTheDocument();
   });
 
-  it('shows KPI values from overview API', async () => {
+  it('shows KPI labels in 2x2 grid (mobile-first)', async () => {
     renderDashboard();
-    expect(await screen.findByText('5')).toBeInTheDocument();
-    expect(screen.getByText('활성 상담')).toBeInTheDocument();
+    expect(await screen.findByText('오늘 신규')).toBeInTheDocument();
+    expect(screen.getByText('답변 대기')).toBeInTheDocument();
+    expect(screen.getByText('진행 중')).toBeInTheDocument();
+    expect(screen.getByText('오늘 완료')).toBeInTheDocument();
+  });
+
+  it('shows empty today tasks when no waiting rooms', async () => {
+    renderDashboard();
+    expect(await screen.findByText('답변 대기 중인 상담이 없습니다.')).toBeInTheDocument();
   });
 });

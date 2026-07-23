@@ -8,14 +8,18 @@ import { registerTypingHandlers } from './handlers/typing.handler.js';
 import { pingBackend } from './services/backend.client.js';
 import { attachRedisAdapter, isRedisAdapterActive } from './services/redis.adapter.js';
 import { startRedisSubscriber, isRedisSubscriberActive } from './services/redis.pubsub.js';
+import { handleInternalBroadcast } from './internal/broadcast.handler.js';
 
 const PORT = Number(process.env.PORT ?? process.env.CHAT_SERVER_PORT ?? 3001);
 const BACKEND_URL = (process.env.BACKEND_URL ?? 'http://localhost/api/v1').replace(/\/$/, '');
 
 let backendReachable = false;
+let io!: Server;
 
 const httpServer = http.createServer(async (req, res) => {
-  if (req.url === '/health' || req.url === '/health/') {
+  const url = req.url?.split('?')[0] ?? '';
+
+  if (url === '/health' || url === '/health/') {
     const backend = await pingBackend();
     backendReachable = backend.ok;
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -38,11 +42,17 @@ const httpServer = http.createServer(async (req, res) => {
     );
     return;
   }
+
+  if (req.method === 'POST' && (url === '/internal/ws/broadcast' || url === '/internal/ws/broadcast/')) {
+    await handleInternalBroadcast(req, res, io);
+    return;
+  }
+
   res.writeHead(404);
   res.end();
 });
 
-const io = new Server(httpServer, {
+io = new Server(httpServer, {
   path: '/socket.io',
   pingInterval: 25000,
   pingTimeout: 20000,

@@ -6,6 +6,7 @@ declare(strict_types=1);
  */
 require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/ai.php';
+require_once __DIR__ . '/../../includes/util/CrmSchema.php';
 
 require_login();
 require_role(['super', 'admin']);
@@ -26,11 +27,12 @@ if (!ai_check_rate_limit('consult_summary', $id)) {
 }
 
 $pdo = db();
+$custTable = CrmSchema::legacyCustomerTable($pdo);
 $stmt = $pdo->prepare(
     "SELECT c.*, cu.name AS cust_name, cu.company, s.brand, s.site_name
      FROM consults c
-     JOIN customers cu ON cu.id = c.customer_id
-     JOIN sites s ON s.id = c.site_id
+     LEFT JOIN {$custTable} cu ON cu.id = c.customer_id
+     LEFT JOIN sites s ON s.id = c.site_id
      WHERE c.id = :id LIMIT 1"
 );
 $stmt->execute([':id' => $id]);

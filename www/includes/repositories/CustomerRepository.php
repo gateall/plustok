@@ -3,19 +3,64 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../util/PiiEncryptor.php';
 require_once __DIR__ . '/../util/Uuid.php';
+require_once __DIR__ . '/LegacyCustomerReader.php';
 
 final class CustomerRepository
 {
+    private LegacyCustomerReader $legacy;
+
     public function __construct(private PDO $pdo)
     {
+        $this->legacy = new LegacyCustomerReader($pdo);
     }
 
     public function findById(string $id): ?array
     {
+        if ($this->legacy->shouldResolve($id)) {
+            $row = $this->legacy->findById($id);
+            if ($row !== null) {
+                return $row;
+            }
+            // consult.php writes to customers; crm_customers may exist empty (V3.0.1 without V0.0)
+            $row = $this->findLegacyCustomersRow($id);
+            if ($row !== null) {
+                return $row;
+            }
+        }
+
+        if (ctype_digit($id)) {
+            $row = $this->findLegacyCustomersRow($id);
+            if ($row !== null) {
+                return $row;
+            }
+        }
+
+        if (!acep_column_exists($this->pdo, 'customers', 'deleted_at')) {
+            $st = $this->pdo->prepare('SELECT * FROM customers WHERE id = :id LIMIT 1');
+            $st->execute([':id' => $id]);
+            $row = $st->fetch();
+            return $row ?: null;
+        }
+
         $st = $this->pdo->prepare(
             'SELECT * FROM customers WHERE id = :id AND deleted_at IS NULL LIMIT 1'
         );
         $st->execute([':id' => $id]);
+        $row = $st->fetch();
+        return $row ?: null;
+    }
+
+    private function findLegacyCustomersRow(string|int $id): ?array
+    {
+        if (!acep_table_exists($this->pdo, 'customers')) {
+            return null;
+        }
+        $where = 'id = :id';
+        if (acep_column_exists($this->pdo, 'customers', 'deleted_at')) {
+            $where .= ' AND deleted_at IS NULL';
+        }
+        $st = $this->pdo->prepare("SELECT * FROM customers WHERE {$where} LIMIT 1");
+        $st->execute([':id' => (string)$id]);
         $row = $st->fetch();
         return $row ?: null;
     }
@@ -80,6 +125,10 @@ final class CustomerRepository
 
     public function maskRow(array $row): array
     {
+        if ($this->legacy->isLegacyRow($row)) {
+            return $this->legacy->maskRow($row);
+        }
+
         $phone = '';
         try {
             $phone = PiiEncryptor::decrypt((string)$row['phone']);
@@ -87,7 +136,7 @@ final class CustomerRepository
             $phone = (string)$row['phone'];
         }
         return [
-            'id'          => $row['id'],
+            'id'          => (string)$row['id'],
             'name'        => $row['name'],
             'phoneMasked' => PiiEncryptor::maskPhone($phone),
             'tags'        => json_decode((string)($row['tags'] ?? '[]'), true) ?: [],

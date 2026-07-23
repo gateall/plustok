@@ -2,9 +2,11 @@
 declare(strict_types=1);
 /** 상품관리 (SPEC.md B-5) — 추가/수정/삭제/선택삭제/사용토글 */
 require_once __DIR__ . '/../../includes/auth.php';
+require_once __DIR__ . '/../../includes/util/ProductSchema.php';
 require_login();
 require_role(['super', 'admin']);
 $pdo = db();
+$hasSiteScope = ProductSchema::hasSiteScope($pdo);
 
 $flash = ''; $flashErr = '';
 
@@ -25,9 +27,15 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         $category = clean_str($_POST['category'] ?? '', 60);
         $name = clean_str($_POST['product_name'] ?? '', 100);
         $sort = (int)($_POST['sort_order'] ?? 0);
+        $siteIdVal = (($_POST['site_id'] ?? '') !== '') ? (int)$_POST['site_id'] : null;
         if ($brand && $category && $name) {
-            $pdo->prepare('INSERT INTO products (brand, category, product_name, sort_order) VALUES (:b, :c, :n, :s)')
-                ->execute([':b' => $brand, ':c' => $category, ':n' => $name, ':s' => $sort]);
+            if ($hasSiteScope) {
+                $pdo->prepare('INSERT INTO products (brand, category, product_name, sort_order, site_id) VALUES (:b, :c, :n, :s, :sid)')
+                    ->execute([':b' => $brand, ':c' => $category, ':n' => $name, ':s' => $sort, ':sid' => $siteIdVal]);
+            } else {
+                $pdo->prepare('INSERT INTO products (brand, category, product_name, sort_order) VALUES (:b, :c, :n, :s)')
+                    ->execute([':b' => $brand, ':c' => $category, ':n' => $name, ':s' => $sort]);
+            }
             log_activity('product_create', 'product:' . $name);
             $flash = '상품을 추가했습니다.';
         } else { $flashErr = '필수 항목을 입력하세요.'; }
@@ -37,9 +45,15 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         $category = clean_str($_POST['category'] ?? '', 60);
         $name = clean_str($_POST['product_name'] ?? '', 100);
         $sort = (int)($_POST['sort_order'] ?? 0);
+        $siteIdVal = (($_POST['site_id'] ?? '') !== '') ? (int)$_POST['site_id'] : null;
         if ($id > 0 && $brand && $category && $name) {
-            $pdo->prepare('UPDATE products SET brand=:b, category=:c, product_name=:n, sort_order=:s WHERE id=:id')
-                ->execute([':b' => $brand, ':c' => $category, ':n' => $name, ':s' => $sort, ':id' => $id]);
+            if ($hasSiteScope) {
+                $pdo->prepare('UPDATE products SET brand=:b, category=:c, product_name=:n, sort_order=:s, site_id=:sid WHERE id=:id')
+                    ->execute([':b' => $brand, ':c' => $category, ':n' => $name, ':s' => $sort, ':sid' => $siteIdVal, ':id' => $id]);
+            } else {
+                $pdo->prepare('UPDATE products SET brand=:b, category=:c, product_name=:n, sort_order=:s WHERE id=:id')
+                    ->execute([':b' => $brand, ':c' => $category, ':n' => $name, ':s' => $sort, ':id' => $id]);
+            }
             log_activity('product_update', 'product:' . $id);
             $flash = '상품을 수정했습니다.';
         } else { $flashErr = '필수 항목을 입력하세요.'; }
@@ -81,7 +95,15 @@ if ($editId > 0) {
     $editRow = $st->fetch() ?: null;
 }
 
-$rows = $pdo->query("SELECT * FROM products ORDER BY brand, sort_order, id")->fetchAll();
+if ($hasSiteScope) {
+    $rows = $pdo->query(
+        "SELECT p.*, s.site_name FROM products p LEFT JOIN sites s ON s.id = p.site_id ORDER BY p.brand, p.sort_order, p.id"
+    )->fetchAll();
+    $sitesForSelect = $pdo->query("SELECT id, site_name FROM sites ORDER BY site_name")->fetchAll();
+} else {
+    $rows = $pdo->query("SELECT * FROM products ORDER BY brand, sort_order, id")->fetchAll();
+    $sitesForSelect = [];
+}
 $page_title = '상품관리'; $active = 'products';
 require INC_DIR . '/header.php';
 ?>
@@ -103,7 +125,7 @@ require INC_DIR . '/header.php';
   <table>
     <thead><tr>
       <th style="width:28px"><input type="checkbox" id="checkall" style="width:auto"></th>
-      <th>브랜드</th><th>카테고리</th><th>상품명</th><th style="width:60px">순서</th><th>사용</th><th>관리</th>
+      <th>브랜드</th><th>카테고리</th><th>상품명</th><?php if ($hasSiteScope): ?><th>전용사이트</th><?php endif; ?><th style="width:60px">순서</th><th>사용</th><th>관리</th>
     </tr></thead>
     <tbody>
       <?php foreach ($rows as $r): ?>
@@ -112,6 +134,9 @@ require INC_DIR . '/header.php';
           <td><?= e($r['brand']) ?></td>
           <td><?= e($r['category']) ?></td>
           <td><?= e($r['product_name']) ?></td>
+          <?php if ($hasSiteScope): ?>
+            <td><?= !empty($r['site_name']) ? e($r['site_name']) : '<span class="muted">(공유)</span>' ?></td>
+          <?php endif; ?>
           <td><?= (int)$r['sort_order'] ?></td>
           <td><?= (int)$r['use_yn'] === 1 ? '사용' : '<span class="muted">중지</span>' ?></td>
           <td style="white-space:nowrap">
@@ -132,7 +157,7 @@ require INC_DIR . '/header.php';
         </tr>
       <?php endforeach; ?>
       <?php if (!$rows): ?>
-        <tr><td colspan="7" class="muted" style="text-align:center;padding:18px">등록된 상품이 없습니다.</td></tr>
+        <tr><td colspan="<?= $hasSiteScope ? 8 : 7 ?>" class="muted" style="text-align:center;padding:18px">등록된 상품이 없습니다.</td></tr>
       <?php endif; ?>
     </tbody>
   </table>
@@ -151,6 +176,17 @@ require INC_DIR . '/header.php';
         <div><label>상품명 *</label><input name="product_name" value="<?= e($editRow['product_name']) ?>" required></div>
         <div><label>순서</label><input name="sort_order" type="number" value="<?= (int)$editRow['sort_order'] ?>"></div>
       </div>
+      <?php if ($hasSiteScope): ?>
+      <div style="margin-top:10px">
+        <label>전용 사이트 (비우면 브랜드 공유)</label>
+        <select name="site_id">
+          <option value="">(브랜드 공유)</option>
+          <?php foreach ($sitesForSelect as $s): ?>
+            <option value="<?= (int)$s['id'] ?>" <?= (int)($editRow['site_id'] ?? 0) === (int)$s['id'] ? 'selected' : '' ?>><?= e($s['site_name']) ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <?php endif; ?>
       <button class="btn" style="margin-top:12px">수정 저장</button>
       <a href="/admin/products/" class="btn sub" style="margin-top:12px">취소</a>
     </form>
@@ -165,6 +201,17 @@ require INC_DIR . '/header.php';
         <div><label>상품명 *</label><input name="product_name" required></div>
         <div><label>순서</label><input name="sort_order" type="number" value="0"></div>
       </div>
+      <?php if ($hasSiteScope): ?>
+      <div style="margin-top:10px">
+        <label>전용 사이트 (비우면 브랜드 공유)</label>
+        <select name="site_id">
+          <option value="">(브랜드 공유)</option>
+          <?php foreach ($sitesForSelect as $s): ?>
+            <option value="<?= (int)$s['id'] ?>"><?= e($s['site_name']) ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <?php endif; ?>
       <button class="btn" style="margin-top:12px">추가</button>
     </form>
   <?php endif; ?>

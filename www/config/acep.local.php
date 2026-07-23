@@ -28,7 +28,13 @@ define('ACEP_PII_KEY', base64_encode(hash('sha256', ACEP_JWT_SECRET . '_pii_salt
 define('ACEP_REDIS_URL', '');  // 로컬/개발용: 빈 값 = Redis 사용 안 함
 
 // ============================================================================
-// 4. 선택적: 추가 설정 오버라이드
+// 4. Chat Server (WebSocket HTTP broadcast fallback)
+// ============================================================================
+define('ACEP_CHAT_SERVER_URL', 'https://plustok.onrender.com');
+// define('ACEP_CHAT_INTERNAL_SECRET', ACEP_JWT_SECRET);  // Render CHAT_INTERNAL_SECRET 과 동일
+
+// ============================================================================
+// 5. 선택적: 추가 설정 오버라이드
 // ============================================================================
 // define('ACEP_JWT_ACCESS_TTL', 86400);    // 24h
 // define('ACEP_LOGIN_MAX_FAIL', 3);

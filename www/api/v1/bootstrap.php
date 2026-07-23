@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/../../includes/http_auth.php';
+acep_restore_authorization_header();
+
 /**
  * ACEP API DI bootstrap — index.php & PHPUnit 공용
  * BUG-001 hotfix: Phase3(Admin/CRM) 파일 없어도 MVP API 기동

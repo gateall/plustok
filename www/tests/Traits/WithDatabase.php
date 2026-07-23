@@ -8,6 +8,13 @@ use PDO;
 trait WithDatabase
 {
     protected static bool $schemaReady = false;
+    protected static string $schemaProfile = '';
+
+    /** @return 'acep'|'legacy' */
+    protected function migrationProfile(): string
+    {
+        return 'acep';
+    }
 
     protected function ensureSchema(): PDO
     {
@@ -18,12 +25,17 @@ trait WithDatabase
 
         require_once dirname(__DIR__, 2) . '/migrations/lib.php';
 
+        $profile = $this->migrationProfile();
         $pdo = $this->freshPdo();
-        if (!self::$schemaReady) {
-            $this->runMigrations($pdo);
+        if (!self::$schemaReady || self::$schemaProfile !== $profile) {
+            if (self::$schemaProfile !== '' && self::$schemaProfile !== $profile) {
+                $this->resetSchemaForProfileSwitch($pdo);
+            }
+            $this->runMigrations($pdo, $profile);
             self::$schemaReady = true;
+            self::$schemaProfile = $profile;
         }
-        $this->truncateTables($pdo);
+        $this->truncateTables($pdo, $profile);
         return $pdo;
     }
 
@@ -44,29 +56,65 @@ trait WithDatabase
         }
     }
 
-    protected function runMigrations(PDO $pdo): void
+    protected function resetSchemaForProfileSwitch(PDO $pdo): void
+    {
+        $pdo->exec('SET foreign_key_checks = 0');
+        foreach ([
+            'ai_failover_log', 'ai_logs', 'ai_recommendations', 'chat_read_status',
+            'chat_messages', 'chat_room_assignments', 'attachments', 'chat_rooms',
+            'customer_bridge', 'consult_history', 'consults', 'crm_customers', 'customers',
+        ] as $table) {
+            if (acep_table_exists($pdo, $table)) {
+                $pdo->exec('DROP TABLE `' . $table . '`');
+            }
+        }
+        $pdo->exec('SET foreign_key_checks = 1');
+    }
+
+    protected function runMigrations(PDO $pdo, string $profile): void
     {
         $dir = dirname(__DIR__, 2) . '/migrations';
-        foreach (['V1.0.0__mvp_core.sql', 'V1.5.0__agents_ai_ops.sql', 'V1.5.3__phase1_v15_tables.sql', 'V3.0.1__phase3_crm.sql'] as $file) {
+        $files = $profile === 'legacy'
+            ? [
+                'legacy_crm_bootstrap.sql',
+                'V1.0.0__legacy_chat_bigint.sql',
+                'V1.5.0__agents_ai_ops.sql',
+                'V1.5.3__phase1_v15_tables.sql',
+            ]
+            : [
+                'V1.0.0__mvp_core.sql',
+                'V1.5.0__agents_ai_ops.sql',
+                'V1.5.3__phase1_v15_tables.sql',
+                'V3.0.1__phase3_crm.sql',
+            ];
+
+        foreach ($files as $file) {
             $path = $dir . '/' . $file;
             if (is_file($path)) {
                 acep_run_sql_file($pdo, file_get_contents($path));
             }
         }
-        require_once $dir . '/phase3_chat_rooms.php';
-        acep_migrate_phase3_chat_rooms($pdo);
+
+        if ($profile === 'acep') {
+            require_once $dir . '/phase3_chat_rooms.php';
+            acep_migrate_phase3_chat_rooms($pdo);
+        }
     }
 
-    protected function truncateTables(PDO $pdo): void
+    protected function truncateTables(PDO $pdo, string $profile): void
     {
         $pdo->exec('SET foreign_key_checks = 0');
-        foreach ([
+        $tables = [
             'agent_notifications', 'ai_failover_log', 'ai_logs', 'ai_recommendations',
             'schedules_dedup_guard', 'schedules', 'consult_history', 'consults',
-            'customer_bridge', 'crm_customers', 'sites',
+            'customer_bridge', 'sites',
             'chat_read_status', 'chat_messages', 'chat_room_assignments', 'attachments',
             'chat_rooms', 'customers', 'audit_logs', 'agents',
-        ] as $table) {
+        ];
+        if ($profile === 'acep') {
+            $tables[] = 'crm_customers';
+        }
+        foreach ($tables as $table) {
             if (acep_table_exists($pdo, $table)) {
                 $pdo->exec('TRUNCATE TABLE `' . $table . '`');
             }

@@ -50,6 +50,27 @@ export async function fetchMe(): Promise<MeResponse> {
   return apiFetch<MeResponse>('/auth/me');
 }
 
+export async function forgotId(name: string, email: string): Promise<void> {
+  await apiFetch<{ sent: boolean }>('/auth/forgot-id', {
+    method: 'POST',
+    body: JSON.stringify({ name, email }),
+  });
+}
+
+export async function forgotPassword(loginId: string, email: string): Promise<void> {
+  await apiFetch<{ sent: boolean }>('/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({ loginId, email }),
+  });
+}
+
+export async function resetPassword(token: string, newPassword: string): Promise<void> {
+  await apiFetch<{ reset: boolean }>('/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify({ token, newPassword }),
+  });
+}
+
 export function getCurrentUser(): AuthUser | null {
   const raw = localStorage.getItem(USER_STORAGE_KEY);
   if (!raw) return null;

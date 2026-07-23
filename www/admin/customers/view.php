@@ -2,11 +2,13 @@
 declare(strict_types=1);
 /** 고객 상세 + 상담 이력 (SPEC.md B-2) */
 require_once __DIR__ . '/../../includes/auth.php';
+require_once __DIR__ . '/../../includes/util/CrmSchema.php';
 require_login();
 $pdo = db();
+$custTable = CrmSchema::legacyCustomerTable($pdo);
 $id = (int)($_GET['id'] ?? 0);
 
-$stmt = $pdo->prepare('SELECT * FROM customers WHERE id = :id LIMIT 1');
+$stmt = $pdo->prepare("SELECT * FROM {$custTable} WHERE id = :id LIMIT 1");
 $stmt->execute([':id' => $id]);
 $cu = $stmt->fetch();
 if (!$cu) { http_response_code(404); echo '고객을 찾을 수 없습니다.'; exit; }
@@ -15,7 +17,7 @@ $flash = '';
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && can_edit_consult()) {
     csrf_check();
     $memo = clean_str($_POST['memo'] ?? '', 2000);
-    $pdo->prepare('UPDATE customers SET memo = :m WHERE id = :id')->execute([':m' => $memo ?: null, ':id' => $id]);
+    $pdo->prepare("UPDATE {$custTable} SET memo = :m WHERE id = :id")->execute([':m' => $memo ?: null, ':id' => $id]);
     $cu['memo'] = $memo;
     $flash = '메모를 저장했습니다.';
 }

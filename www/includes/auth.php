@@ -107,5 +107,62 @@ function current_acep_user(): ?array
 function acep_access_token(): ?string
 {
     $t = $_SESSION['acep_jwt'] ?? null;
-    return is_string($t) && $t !== '' ? $t : null;
+    if (is_string($t) && $t !== '') {
+        require_once __DIR__ . '/util/JwtHelper.php';
+        $claims = JwtHelper::decode($t);
+        if (
+            $claims !== null
+            && !empty($claims['sub'])
+            && !empty($claims['role'])
+            && ($claims['typ'] ?? '') !== 'refresh'
+        ) {
+            return $t;
+        }
+    }
+
+    return acep_refresh_access_token();
+}
+
+/** 세션 acep_user(또는 legacy manager→agents 매칭)로 access JWT 재발급 */
+function acep_refresh_access_token(): ?string
+{
+    $user = current_acep_user() ?? acep_resolve_user_from_manager();
+    if ($user === null) {
+        return null;
+    }
+
+    require_once __DIR__ . '/../config/acep.users.php';
+    require_once __DIR__ . '/repositories/AgentRepository.php';
+    $token = (new AcepUserManager(new AgentRepository(db())))->createAccessToken($user);
+    $_SESSION['acep_jwt'] = $token;
+    if (current_acep_user() === null) {
+        $_SESSION['acep_user'] = $user;
+    }
+
+    return $token;
+}
+
+/** legacy managers 세션 → agents 테이블 login_id 매칭 시 ACEP public user */
+function acep_resolve_user_from_manager(): ?array
+{
+    $m = current_manager();
+    if (!$m || empty($m['login_id'])) {
+        return null;
+    }
+
+    require_once __DIR__ . '/../migrations/lib.php';
+    $pdo = db();
+    if (!acep_table_exists($pdo, 'agents')) {
+        return null;
+    }
+
+    require_once __DIR__ . '/repositories/AgentRepository.php';
+    require_once __DIR__ . '/../config/acep.users.php';
+    $repo = new AgentRepository($pdo);
+    $agent = $repo->findByLoginId((string)$m['login_id']);
+    if (!$agent) {
+        return null;
+    }
+
+    return (new AcepUserManager($repo))->toPublicUser($agent);
 }

@@ -2,9 +2,11 @@
 declare(strict_types=1);
 /** 상담 목록 CSV(엑셀) 내보내기 — 상담관리와 동일 필터 적용 */
 require_once __DIR__ . '/../../includes/auth.php';
+require_once __DIR__ . '/../../includes/util/CrmSchema.php';
 require_login();
 
 $pdo = db();
+$custTable = CrmSchema::legacyCustomerTable($pdo);
 
 // 필터 (index.php와 동일)
 $fSite   = clean_str($_GET['site'] ?? '', 50);
@@ -27,8 +29,8 @@ $sql = "SELECT c.consult_no, c.created_at, s.site_name, s.brand, c.category, c.p
                cu.name AS cust_name, cu.phone, cu.email, cu.company, cu.zipcode, cu.address,
                c.status, mg.name AS manager_name, c.memo
         FROM consults c
-        JOIN customers cu ON cu.id = c.customer_id
-        JOIN sites s ON s.id = c.site_id
+        LEFT JOIN {$custTable} cu ON cu.id = c.customer_id
+        LEFT JOIN sites s ON s.id = c.site_id
         LEFT JOIN managers mg ON mg.id = c.manager_id
         $sqlWhere
         ORDER BY c.id DESC";

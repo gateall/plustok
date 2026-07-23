@@ -46,6 +46,39 @@ function acep_route(string $method, string $uri, ?array $container = null): void
         acep_success($auth->refresh($token));
     }
 
+    if ($method === 'POST' && $uri === '/auth/forgot-id') {
+        $body = acep_read_json();
+        $name = trim((string)($body['name'] ?? ''));
+        $email = trim((string)($body['email'] ?? ''));
+        if ($name === '' || $email === '') {
+            acep_error('VALIDATION_ERROR', 'name과 email이 필요합니다.', 400);
+        }
+        $auth->forgotId($name, $email);
+        acep_success(['sent' => true]);
+    }
+
+    if ($method === 'POST' && $uri === '/auth/forgot-password') {
+        $body = acep_read_json();
+        $loginId = trim((string)($body['loginId'] ?? ''));
+        $email = trim((string)($body['email'] ?? ''));
+        if ($loginId === '' || $email === '') {
+            acep_error('VALIDATION_ERROR', 'loginId와 email이 필요합니다.', 400);
+        }
+        $auth->forgotPassword($loginId, $email);
+        acep_success(['sent' => true]);
+    }
+
+    if ($method === 'POST' && $uri === '/auth/reset-password') {
+        $body = acep_read_json();
+        $token = trim((string)($body['token'] ?? ''));
+        $newPassword = (string)($body['newPassword'] ?? '');
+        if ($token === '' || $newPassword === '') {
+            acep_error('VALIDATION_ERROR', 'token과 newPassword가 필요합니다.', 400);
+        }
+        $auth->resetPassword($token, $newPassword);
+        acep_success(['reset' => true]);
+    }
+
     if ($method === 'GET' && $uri === '/auth/me') {
         $claims = JwtMiddleware::requireAuth();
         acep_success($auth->me((string)$claims['sub']));
@@ -117,7 +150,7 @@ function acep_route(string $method, string $uri, ?array $container = null): void
             acep_error('VALIDATION_ERROR', 'roomId가 필요합니다.', 400);
         }
         $payload = [
-            'content' => (string)($body['content'] ?? ''),
+            'content' => (string)($body['content'] ?? $body['message'] ?? ''),
             'source'  => (string)($body['source'] ?? 'manual'),
         ];
         acep_success($messageSvc->createMessage($roomId, (string)$claims['sub'], (string)$claims['role'], $payload), 201);
@@ -395,6 +428,10 @@ function acep_route_admin(string $method, string $uri, array $c): void
     if ($method === 'GET' && $uri === '/admin/consults') {
         JwtMiddleware::requireRole($readRoles);
         acep_success($adminConsultSvc->list($_GET));
+    }
+    if ($method === 'GET' && preg_match('#^/admin/consults/([A-Za-z0-9\\-]+)$#', $uri, $m)) {
+        JwtMiddleware::requireRole($readRoles);
+        acep_success($adminConsultSvc->get($m[1]));
     }
 
     if ($method === 'GET' && $uri === '/admin/monitor/rooms') {

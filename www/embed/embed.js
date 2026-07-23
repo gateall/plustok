@@ -48,6 +48,7 @@
     '.pt-err{color:#e53e3e;font-size:14px;margin-top:8px}' +
     '.pt-done{text-align:center;padding:20px}' +
     '.pt-no{font-size:22px;font-weight:700;color:#2b6cb0;margin:10px 0}' +
+    '.pt-chat-btn{margin-top:16px;width:100%;padding:14px;font-size:16px;border:0;border-radius:8px;background:#38a169;color:#fff;cursor:pointer}' +
     '.pt-agree-wrap{margin-top:16px;border:1px solid #e2e8f0;border-radius:8px;padding:12px;background:#f8fafc}' +
     '.pt-agree{display:flex;align-items:flex-start;gap:8px;font-size:14px;color:#1f2933;cursor:pointer}' +
     '#pt-wrap .pt-agree input[type="checkbox"]{width:18px;height:18px;flex:0 0 auto;margin-top:1px}' +
@@ -78,7 +79,33 @@
   function el(html) { var d = document.createElement('div'); d.innerHTML = html; return d.firstChild; }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 
+  // 서버가 내려준 cfg.field_schema에서 product/category/사이트기본값 순으로 찾아
+  // 기존 EXTRA 필드 형식({k,label,opts,type})으로 매핑. 매칭되는 행이 하나도 없으면
+  // null을 반환해 하드코딩된 EXTRA 폴백을 쓰게 한다 (하위호환 안전장치).
+  function schemaFieldsFor(product) {
+    var rows = (cfg && cfg.field_schema) || [];
+    if (!rows.length) { return null; }
+
+    var category = '';
+    (cfg.products || []).some(function (p) {
+      if (p.name === product) { category = p.category || ''; return true; }
+      return false;
+    });
+
+    var row = null;
+    rows.some(function (r) { if (r.product_name && r.product_name === product) { row = r; return true; } return false; });
+    if (!row) { rows.some(function (r) { if (!r.product_name && r.category && r.category === category) { row = r; return true; } return false; }); }
+    if (!row) { rows.some(function (r) { if (!r.product_name && !r.category) { row = r; return true; } return false; }); }
+    if (!row) { return null; }
+
+    return (row.fields || []).map(function (f) {
+      return { k: f.key, label: f.label, opts: f.options, type: f.type };
+    });
+  }
+
   function extraFor(product) {
+    var schemaFields = schemaFieldsFor(product);
+    if (schemaFields !== null) { return schemaFields; }
     for (var i = 0; i < EXTRA.length; i++) { if (EXTRA[i].m.test(product)) return EXTRA[i].fields; }
     return [];
   }
@@ -130,7 +157,7 @@
         '</div>' +
         '<div class="pt-row2">' +
           '<div><label class="pt-label">휴대폰/연락처 <span class="pt-req">*</span></label><input id="pt-phone" type="tel" inputmode="numeric" value="' + esc(state.phone || '') + '"></div>' +
-          '<div><label class="pt-label">이메일</label><input id="pt-email" type="email" inputmode="email" value="' + esc(state.email || '') + '"></div>' +
+          '<div><label class="pt-label">이메일 <span class="pt-req">*</span></label><input id="pt-email" type="email" inputmode="email" value="' + esc(state.email || '') + '"></div>' +
         '</div>' +
         '<label class="pt-label">주소 (법정동/도로명)</label>' +
         '<div class="pt-row-addr">' +
@@ -202,7 +229,8 @@
     state.agree = document.getElementById('pt-agree').checked;
     if (!state.name) { err('이름을 입력하세요.'); return; }
     if (state.phone.replace(/\D/g, '').length < 9) { err('휴대폰 번호를 확인하세요.'); return; }
-    if (state.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(state.email)) { err('이메일 형식을 확인하세요.'); return; }
+    if (!state.email) { err('이메일을 입력하세요.'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(state.email)) { err('이메일 형식을 확인하세요.'); return; }
     if (!state.agree) { err('개인정보 수집에 동의해야 합니다.'); return; }
     err('');
 
@@ -217,20 +245,48 @@
     fetch(base + '/embed/form.php', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
     }).then(function (r) { return r.json(); }).then(function (res) {
-      if (res && res.result === 'success') { done(res.data.consult_no); }
+      if (res && res.result === 'success') { done(res.data || {}); }
       else { err((res && res.message) || '접수에 실패했습니다.'); if (btn) { btn.disabled = false; btn.textContent = '상담 신청하기'; } }
     }).catch(function () {
       err('네트워크 오류가 발생했습니다.'); if (btn) { btn.disabled = false; btn.textContent = '상담 신청하기'; }
     });
   }
 
-  function done(no) {
-    mount.innerHTML = '<div id="pt-wrap"><div class="pt-card pt-done">' +
+  function done(data) {
+    var no = typeof data === 'string' ? data : (data.consult_no || '');
+    var html = '<div id="pt-wrap"><div class="pt-card pt-done">' +
       '<p style="font-size:16px">접수가 완료되었습니다.</p>' +
       '<div class="pt-no">' + esc(no) + '</div>' +
-      '<p style="color:#718096">담당자가 연락드립니다.</p></div></div>';
+      '<p style="color:#718096">담당자가 연락드립니다.</p>';
+    if (data && data.roomId && data.accessToken) {
+      html += '<button type="button" class="pt-chat-btn" id="pt-open-chat">상담원과 바로 채팅하기</button>';
+    }
+    html += '</div></div>';
+    mount.innerHTML = html;
     var style = document.getElementById('pt-style');
     if (!style) { document.head.appendChild(el('<style id="pt-style">' + CSS + '</style>')); }
+
+    if (data && data.roomId && data.accessToken) {
+      var chatBtn = document.getElementById('pt-open-chat');
+      if (chatBtn) {
+        chatBtn.onclick = function () {
+          function openChat() {
+            window.PlusTokChat.open({
+              base: base,
+              roomId: data.roomId,
+              accessToken: data.accessToken,
+              wsUrl: data.wsUrl || (cfg && cfg.wsUrl) || ''
+            });
+          }
+          if (window.PlusTokChat) { openChat(); return; }
+          var s = document.createElement('script');
+          s.src = base + '/embed/chat-widget.js';
+          s.onload = openChat;
+          s.onerror = function () { err('채팅 위젯을 불러오지 못했습니다.'); };
+          document.head.appendChild(s);
+        };
+      }
+    }
   }
 
   // 설정 로드 후 렌더

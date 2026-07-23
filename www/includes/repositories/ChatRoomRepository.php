@@ -1,10 +1,64 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/../../migrations/lib.php';
+require_once __DIR__ . '/../util/CrmSchema.php';
+
 final class ChatRoomRepository
 {
     public function __construct(private PDO $pdo)
     {
+    }
+
+    private function usesLegacyCustomerFk(): bool
+    {
+        static $cache = null;
+        if ($cache !== null) {
+            return $cache;
+        }
+        if (acep_is_legacy_crm($this->pdo)) {
+            return $cache = true;
+        }
+        if (!acep_table_exists($this->pdo, 'chat_rooms')) {
+            return $cache = false;
+        }
+        $st = $this->pdo->prepare(
+            'SELECT DATA_TYPE FROM information_schema.columns
+             WHERE table_schema = DATABASE()
+               AND table_name = \'chat_rooms\'
+               AND column_name = \'customer_id\'
+             LIMIT 1'
+        );
+        $st->execute();
+        $cache = strtolower((string)$st->fetchColumn()) === 'bigint';
+        return $cache;
+    }
+
+    private function customerTable(): string
+    {
+        if ($this->usesLegacyCustomerFk()) {
+            return CrmSchema::legacyCustomerTable($this->pdo);
+        }
+        return 'customers';
+    }
+
+    private function customerJoinClause(): string
+    {
+        $table = $this->customerTable();
+        $join = "JOIN {$table} c ON c.id = cr.customer_id";
+        if ($table === 'customers' && acep_column_exists($this->pdo, 'customers', 'deleted_at')) {
+            $join .= ' AND c.deleted_at IS NULL';
+        }
+        return $join;
+    }
+
+    /** @return string SQL select list for customer columns in room listings */
+    private function customerSelectClause(): string
+    {
+        if ($this->usesLegacyCustomerFk()) {
+            return 'c.name AS customer_name, c.phone AS customer_phone, NULL AS customer_tags';
+        }
+        return 'c.name AS customer_name, c.phone AS customer_phone, c.tags AS customer_tags';
     }
 
     public function findById(string $id): ?array
@@ -56,9 +110,9 @@ final class ChatRoomRepository
         };
 
         $offset = ($page - 1) * $limit;
-        $sql = 'SELECT cr.*, c.name AS customer_name, c.phone AS customer_phone, c.tags AS customer_tags
+        $sql = 'SELECT cr.*, ' . $this->customerSelectClause() . '
                 FROM chat_rooms cr
-                JOIN customers c ON c.id = cr.customer_id AND c.deleted_at IS NULL
+                ' . $this->customerJoinClause() . '
                 WHERE ' . implode(' AND ', $where) . '
                 ORDER BY ' . $order . '
                 LIMIT ' . (int)$limit . ' OFFSET ' . (int)$offset;
@@ -98,21 +152,65 @@ final class ChatRoomRepository
         }
 
         $sql = 'SELECT COUNT(*) FROM chat_rooms cr
-                JOIN customers c ON c.id = cr.customer_id AND c.deleted_at IS NULL
+                ' . $this->customerJoinClause() . '
                 WHERE ' . implode(' AND ', $where);
         $st = $this->pdo->prepare($sql);
         $st->execute($params);
         return (int)$st->fetchColumn();
     }
 
-    /** @param array<string,mixed> $data */
+    /** @param array<string,mixed> $data bind keys like :id, :customer_id, … */
     public function create(array $data): void
     {
-        $st = $this->pdo->prepare(
-            'INSERT INTO chat_rooms (id, customer_id, agent_id, inquiry_type, status, channel, subject)
-             VALUES (:id, :customer_id, :agent_id, :inquiry_type, :status, :channel, :subject)'
-        );
-        $st->execute($data);
+        if (!isset($data[':status']) || $data[':status'] === '') {
+            $data[':status'] = 'new';
+        }
+        if (!isset($data[':channel']) || $data[':channel'] === '') {
+            $data[':channel'] = 'web';
+        }
+        if (!isset($data[':inquiry_type']) || $data[':inquiry_type'] === '') {
+            $data[':inquiry_type'] = '상담신청';
+        }
+
+        $candidates = [
+            'id',
+            'customer_id',
+            'agent_id',
+            'inquiry_type',
+            'status',
+            'channel',
+            'subject',
+            'legacy_consult_id',
+            'crm_save_status',
+        ];
+        $columns = [];
+        $params = [];
+        $stringCustomerId = !$this->usesLegacyCustomerFk();
+        foreach ($candidates as $col) {
+            if (!acep_column_exists($this->pdo, 'chat_rooms', $col)) {
+                continue;
+            }
+            $key = ':' . $col;
+            if (!array_key_exists($key, $data)) {
+                continue;
+            }
+            $columns[] = $col;
+            $value = $data[$key];
+            if ($col === 'customer_id' && $stringCustomerId && $value !== null) {
+                $value = (string)$value;
+            }
+            $params[$key] = $value;
+        }
+
+        if ($columns === [] || !in_array('id', $columns, true) || !in_array('customer_id', $columns, true)) {
+            throw new RuntimeException('chat_rooms schema missing required columns (id, customer_id)');
+        }
+
+        $placeholders = array_map(static fn(string $c): string => ':' . $c, $columns);
+        $sql = 'INSERT INTO chat_rooms (' . implode(', ', $columns) . ')
+                VALUES (' . implode(', ', $placeholders) . ')';
+        $st = $this->pdo->prepare($sql);
+        $st->execute($params);
     }
 
     public function close(string $id): bool
