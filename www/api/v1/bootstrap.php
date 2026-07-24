@@ -33,6 +33,7 @@ function acep_bootstrap(bool $forceReload = false): array
     require_once __DIR__ . '/../../includes/repositories/ReadStatusRepository.php';
     require_once __DIR__ . '/../../includes/repositories/AiRecommendationRepository.php';
     require_once __DIR__ . '/../../includes/repositories/AiPromptRepository.php';
+    require_once __DIR__ . '/../../includes/repositories/SiteRepository.php';
     require_once __DIR__ . '/../../includes/repositories/AttachmentRepository.php';
     require_once __DIR__ . '/../../includes/ai_router_service.php';
     require_once __DIR__ . '/../../includes/services/AuditService.php';
@@ -48,6 +49,9 @@ function acep_bootstrap(bool $forceReload = false): array
     require_once __DIR__ . '/../../includes/services/SettingsService.php';
     require_once __DIR__ . '/../../includes/services/SearchService.php';
     require_once __DIR__ . '/../../includes/services/DashboardService.php';
+    require_once __DIR__ . '/../../includes/validation/SiteValidator.php';
+    require_once __DIR__ . '/../../includes/services/SiteService.php';
+    require_once __DIR__ . '/../../includes/controllers/SiteController.php';
 
     $pdo = db();
     $agents = new AgentRepository($pdo);
@@ -96,6 +100,8 @@ function acep_bootstrap(bool $forceReload = false): array
     $notificationSvc = new NotificationService(new NotificationRepository($pdo));
     $settingsSvc = new SettingsService($agents);
     $searchSvc = new SearchService($customers, $rooms);
+    $siteSvc = new SiteService(new SiteRepository($pdo), new SiteValidator($pdo), $audit, $pdo);
+    $siteController = new SiteController($siteSvc);
 
     $adminStatsSvc = null;
     $adminAgentSvc = null;
@@ -137,7 +143,7 @@ function acep_bootstrap(bool $forceReload = false): array
         'pdo', 'agents', 'customers', 'rooms', 'messages', 'readStatus', 'aiRecs',
         'attachments', 'audit', 'auth', 'customerSvc', 'agentSvc', 'chatSvc',
         'aiRouter', 'messageSvc', 'aiSvc', 'fileSvc',
-        'notificationSvc', 'settingsSvc', 'searchSvc', 'dashboardSvc',
+        'notificationSvc', 'settingsSvc', 'searchSvc', 'dashboardSvc', 'siteSvc', 'siteController',
         'crmCloseSvc', 'adminStatsSvc', 'adminAgentSvc', 'adminMonitorSvc', 'adminConsultSvc',
         'adminPromptSvc', 'adminFailoverSvc',
     );

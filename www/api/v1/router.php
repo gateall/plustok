@@ -393,12 +393,17 @@ function acep_route_admin(string $method, string $uri, array $c): void
     $adminPromptSvc = $c['adminPromptSvc'];
     $adminFailoverSvc = $c['adminFailoverSvc'];
     $settingsSvc = $c['settingsSvc'];
+    $siteController = $c['siteController'];
     $audit = $c['audit'];
     $pdo = $c['pdo'];
     $uuid = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
 
     $readRoles = ['admin', 'operator'];
     $adminWriteRoles = ['admin'];
+
+    if ($siteController->route($method, $uri)) {
+        return;
+    }
 
     if ($method === 'GET' && $uri === '/admin/stats/overview') {
         JwtMiddleware::requireRole($readRoles);
@@ -428,6 +433,85 @@ function acep_route_admin(string $method, string $uri, array $c): void
     if ($method === 'GET' && $uri === '/admin/consults') {
         JwtMiddleware::requireRole($readRoles);
         acep_success($adminConsultSvc->list($_GET));
+    }
+    if ($method === 'GET' && $uri === '/admin/consults/unread-count') {
+        JwtMiddleware::requireRole($readRoles);
+        acep_success($adminConsultSvc->unreadCount($_GET));
+    }
+    if ($method === 'GET' && $uri === '/admin/activity-feed') {
+        JwtMiddleware::requireRole($readRoles);
+        acep_success($adminConsultSvc->activityFeed($_GET));
+    }
+    if ($method === 'GET' && preg_match('#^/admin/customers/([^/]+)$#', $uri, $m)) {
+        JwtMiddleware::requireRole($readRoles);
+        acep_success($adminConsultSvc->customer(rawurldecode($m[1])));
+    }
+    if ($method === 'GET' && preg_match('#^/admin/customers/([^/]+)/consults$#', $uri, $m)) {
+        JwtMiddleware::requireRole($readRoles);
+        acep_success($adminConsultSvc->customerConsultHistory(rawurldecode($m[1]), $_GET));
+    }
+    if ($method === 'POST' && $uri === '/admin/consults/bulk-delete') {
+        JwtMiddleware::requireRole($adminWriteRoles);
+        acep_success($adminConsultSvc->bulkDelete(acep_read_json()));
+    }
+    if ($method === 'POST' && $uri === '/admin/consults/bulk-status') {
+        JwtMiddleware::requireRole($adminWriteRoles);
+        acep_success($adminConsultSvc->bulkUpdateStatus(acep_read_json()));
+    }
+    if ($method === 'POST' && $uri === '/admin/consults/bulk-assign') {
+        JwtMiddleware::requireRole($adminWriteRoles);
+        acep_success($adminConsultSvc->bulkUpdateAssignee(acep_read_json()));
+    }
+    if ($method === 'POST' && $uri === '/admin/consults/bulk-tags') {
+        JwtMiddleware::requireRole($adminWriteRoles);
+        acep_success($adminConsultSvc->updateTags(acep_read_json()));
+    }
+    if ($method === 'PATCH' && preg_match('#^/admin/consults/([^/]+)/status$#', $uri, $m)) {
+        JwtMiddleware::requireRole($adminWriteRoles);
+        acep_success($adminConsultSvc->updateStatus(rawurldecode($m[1]), acep_read_json()));
+    }
+    if ($method === 'PATCH' && preg_match('#^/admin/consults/([^/]+)/assign$#', $uri, $m)) {
+        JwtMiddleware::requireRole($adminWriteRoles);
+        acep_success($adminConsultSvc->updateAssignee(rawurldecode($m[1]), acep_read_json()));
+    }
+    if ($method === 'GET' && preg_match('#^/admin/consults/([^/]+)/timeline$#', $uri, $m)) {
+        JwtMiddleware::requireRole($readRoles);
+        acep_success($adminConsultSvc->timeline(rawurldecode($m[1])));
+    }
+    if ($method === 'POST' && preg_match('#^/admin/consults/([^/]+)/timeline$#', $uri, $m)) {
+        JwtMiddleware::requireRole($adminWriteRoles);
+        acep_success($adminConsultSvc->createTimelineEvent(rawurldecode($m[1]), acep_read_json()), 201);
+    }
+    if ($method === 'GET' && preg_match('#^/admin/consults/([^/]+)/attachments$#', $uri, $m)) {
+        JwtMiddleware::requireRole($readRoles);
+        acep_success($adminConsultSvc->attachments(rawurldecode($m[1])));
+    }
+    if ($method === 'POST' && preg_match('#^/admin/consults/([^/]+)/attachments$#', $uri, $m)) {
+        JwtMiddleware::requireRole($adminWriteRoles);
+        if (isset($_FILES['file']) && is_array($_FILES['file'])) {
+            acep_success($adminConsultSvc->uploadAttachment(rawurldecode($m[1]), $_FILES['file'], $_POST), 201);
+        }
+        acep_success($adminConsultSvc->createAttachment(rawurldecode($m[1]), acep_read_json()), 201);
+    }
+    if ($method === 'GET' && preg_match('#^/admin/consults/([^/]+)/attachments/([^/]+)$#', $uri, $m)) {
+        JwtMiddleware::requireRole($readRoles);
+        acep_success($adminConsultSvc->attachment(rawurldecode($m[1]), rawurldecode($m[2])));
+    }
+    if ($method === 'DELETE' && preg_match('#^/admin/consults/([^/]+)/attachments/([^/]+)$#', $uri, $m)) {
+        JwtMiddleware::requireRole($adminWriteRoles);
+        acep_success($adminConsultSvc->deleteAttachment(rawurldecode($m[1]), rawurldecode($m[2])));
+    }
+    if ($method === 'GET' && $uri === '/admin/consult-tags') {
+        JwtMiddleware::requireRole($readRoles);
+        acep_success($adminConsultSvc->listTags($_GET));
+    }
+    if ($method === 'POST' && $uri === '/admin/consult-tags') {
+        JwtMiddleware::requireRole($adminWriteRoles);
+        acep_success($adminConsultSvc->createTag(acep_read_json()), 201);
+    }
+    if ($method === 'DELETE' && preg_match('#^/admin/consult-tags/([^/]+)$#', $uri, $m)) {
+        JwtMiddleware::requireRole($adminWriteRoles);
+        acep_success($adminConsultSvc->deleteTag(rawurldecode($m[1])));
     }
     if ($method === 'GET' && preg_match('#^/admin/consults/([A-Za-z0-9\\-]+)$#', $uri, $m)) {
         JwtMiddleware::requireRole($readRoles);
