@@ -45,6 +45,7 @@ $files = [
     'V1.5.0__agents_ai_ops.sql',
     'V1.5.3__phase1_v15_tables.sql',
     'V3.0.1__phase3_crm.sql',
+    'V3.1.0__contracts.sql',
 ];
 
 foreach ($files as $file) {

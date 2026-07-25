@@ -47,7 +47,7 @@ trait WithDatabase
     protected function runMigrations(PDO $pdo): void
     {
         $dir = dirname(__DIR__, 2) . '/migrations';
-        foreach (['V1.0.0__mvp_core.sql', 'V1.5.0__agents_ai_ops.sql', 'V1.5.3__phase1_v15_tables.sql', 'V3.0.1__phase3_crm.sql'] as $file) {
+        foreach (['V1.0.0__mvp_core.sql', 'V1.5.0__agents_ai_ops.sql', 'V1.5.3__phase1_v15_tables.sql', 'V3.0.1__phase3_crm.sql', 'V3.1.0__contracts.sql'] as $file) {
             $path = $dir . '/' . $file;
             if (is_file($path)) {
                 acep_run_sql_file($pdo, file_get_contents($path));
@@ -61,6 +61,7 @@ trait WithDatabase
     {
         $pdo->exec('SET foreign_key_checks = 0');
         foreach ([
+            'contract_payments', 'contracts',
             'agent_notifications', 'ai_failover_log', 'ai_logs', 'ai_recommendations',
             'schedules_dedup_guard', 'schedules', 'consult_history', 'consults',
             'customer_bridge', 'crm_customers', 'sites',
