@@ -36,7 +36,10 @@ CREATE TABLE IF NOT EXISTS contracts (
     KEY idx_contracts_manager (manager_id),
     KEY idx_contracts_status (status),
     KEY idx_contracts_created (created_at),
-    KEY idx_contracts_deleted (deleted_at)
+    KEY idx_contracts_deleted (deleted_at),
+    CONSTRAINT fk_contracts_customer
+        FOREIGN KEY (customer_id) REFERENCES customers(id)
+        ON UPDATE CASCADE ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   COMMENT='계약 원장';
 
@@ -52,6 +55,9 @@ CREATE TABLE IF NOT EXISTS contract_payments (
     created_by     VARCHAR(36)   NULL,
     created_at     DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     PRIMARY KEY (id),
-    KEY idx_contract_payments_contract (contract_id)
+    KEY idx_contract_payments_contract (contract_id),
+    CONSTRAINT fk_contract_payments_contract
+        FOREIGN KEY (contract_id) REFERENCES contracts(id)
+        ON UPDATE CASCADE ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   COMMENT='계약 결제/환불 원장 — 계약 삭제와 독립 보존';
