@@ -106,7 +106,7 @@ final class CrmCloseTest extends ApiTestCase
     {
         $agentRes = $this->api('GET', '/admin/stats/overview', null, $this->agentToken());
         $this->assertFalse($agentRes->isSuccess());
-        $this->assertSame(403, $agentRes->httpCode);
+        $this->assertSame(403, $agentRes->http);
 
         $adminRes = $this->api('GET', '/admin/stats/overview', null, $this->adminToken());
         $this->assertTrue($adminRes->isSuccess());
