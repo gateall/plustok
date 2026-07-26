@@ -197,8 +197,9 @@ final class ChatService
             } catch (AcepHttpResponse $e) {
                 if ($e->httpCode >= 500) {
                     $this->rooms->markCrmFailed($roomId);
+                    throw $e;
                 }
-                throw $e;
+                // Room is already closed; optional CRM validation/save failure must not fail close.
             } catch (Throwable) {
                 $this->rooms->markCrmFailed($roomId);
             }
