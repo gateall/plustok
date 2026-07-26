@@ -11,6 +11,15 @@ $GLOBALS['acep_pdo'] = $GLOBALS['acep_pdo'] ?? null;
 
 function db_reset(): void
 {
+    if ($GLOBALS['acep_pdo'] instanceof PDO) {
+        try {
+            if ($GLOBALS['acep_pdo']->inTransaction()) {
+                $GLOBALS['acep_pdo']->rollBack();
+            }
+        } catch (Throwable) {
+            // ignore — connection may already be closed
+        }
+    }
     $GLOBALS['acep_pdo'] = null;
 }
 

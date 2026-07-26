@@ -14,13 +14,16 @@ final class CrmCloseTest extends ApiTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $pdo = \db();
-        $this->seedChatFixtures($pdo);
+        $this->seedChatFixtures(\db());
     }
 
     private function seedChatFixtures(\PDO $pdo): void
     {
         require_once dirname(__DIR__, 2) . '/includes/util/PiiEncryptor.php';
+        $pdo->prepare('DELETE FROM chat_messages WHERE room_id = :rid')->execute([':rid' => $this->roomId]);
+        $pdo->prepare('DELETE FROM chat_rooms WHERE id = :id')->execute([':id' => $this->roomId]);
+        $pdo->prepare('DELETE FROM customers WHERE id = :id')->execute([':id' => $this->customerId]);
+        $pdo->prepare('DELETE FROM agents WHERE id = :id')->execute([':id' => $this->agentId]);
         $hash = password_hash('Agent123!', PASSWORD_BCRYPT, ['cost' => 4]);
         $pdo->prepare(
             'INSERT INTO agents (id, login_id, password_hash, name, role, status)
@@ -54,7 +57,7 @@ final class CrmCloseTest extends ApiTestCase
             ':sub' => '5G 결합',
         ]);
 
-        $base = strtotime('-7 minutes');
+        $base = strtotime('-15 minutes');
         for ($i = 0; $i < 4; $i++) {
             $msgId = sprintf('55555555-5555-4555-8555-%012d', $i);
             $senderType = $i % 2 === 0 ? 'customer' : 'agent';

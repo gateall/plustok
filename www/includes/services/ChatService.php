@@ -239,7 +239,9 @@ final class ChatService
         return [
             'roomId'   => $roomId,
             'status'   => 'closed',
-            'closedAt' => date('c', strtotime((string)$updated['closed_at'])),
+            'closedAt' => ($ts = strtotime((string)($updated['closed_at'] ?? ''))) !== false
+                ? date('c', $ts)
+                : date('c'),
             'crm'      => $crm,
         ];
     }
