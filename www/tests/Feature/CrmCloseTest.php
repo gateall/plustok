@@ -98,10 +98,11 @@ final class CrmCloseTest extends ApiTestCase
         $this->assertGreaterThanOrEqual(250, $data['ai']['summaryLength']);
 
         $pdo = $this->freshPdo();
-        $st = $pdo->prepare('SELECT crm_save_status FROM chat_rooms WHERE id = :id');
+        $st = $pdo->prepare('SELECT crm_save_status, legacy_consult_id FROM chat_rooms WHERE id = :id');
         $st->execute([':id' => $this->roomId]);
         $room = $st->fetch();
         $this->assertSame('saved', $room['crm_save_status']);
+        $this->assertEquals($data['consultId'], $room['legacy_consult_id'], 'legacy_consult_id should match consultId and not be null or 0');
     }
 
     public function test_admin_stats_overview_requires_admin_role(): void
