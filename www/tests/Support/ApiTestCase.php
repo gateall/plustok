@@ -46,8 +46,9 @@ abstract class ApiTestCase extends TestCase
         $_SERVER['HTTP_AUTHORIZATION'] = $token ? 'Bearer ' . $token : '';
 
         require_once dirname(__DIR__, 2) . '/includes/api_envelope.php';
+        require_once dirname(__DIR__, 2) . '/api/v1/bootstrap.php';
         \acep_test_mode(true);
-        acep_bootstrap(true);
+        \acep_bootstrap(true);
 
         require_once dirname(__DIR__, 2) . '/api/v1/router.php';
 

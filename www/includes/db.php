@@ -15,9 +15,11 @@ function db(): PDO
 
     $cfg = load_db_config();
 
+    $port = (int) ($cfg['port'] ?? 3306);
     $dsn = sprintf(
-        'mysql:host=%s;dbname=%s;charset=%s',
+        'mysql:host=%s;port=%d;dbname=%s;charset=%s',
         $cfg['host'],
+        $port,
         $cfg['name'],
         $cfg['charset'] ?? 'utf8mb4'
     );

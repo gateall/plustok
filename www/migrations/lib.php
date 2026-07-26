@@ -6,10 +6,12 @@ declare(strict_types=1);
 
 function acep_run_sql_file(PDO $pdo, string $sql): void
 {
+    // Normalize Windows/old-Mac line endings before split (bare \r mid-file breaks comment lines).
+    $sql = str_replace(["\r\n", "\r"], "\n", $sql);
     $pdo->exec('SET NAMES utf8mb4');
     $pdo->exec('SET foreign_key_checks = 0');
     $buffer = '';
-    foreach (preg_split('/\R/', $sql) as $line) {
+    foreach (explode("\n", $sql) as $line) {
         $trim = trim($line);
         if ($trim === '' || str_starts_with($trim, '--')) {
             continue;
@@ -19,7 +21,7 @@ function acep_run_sql_file(PDO $pdo, string $sql): void
             $stmt = trim($buffer);
             $buffer = '';
             if ($stmt !== '') {
-                $pdo->exec($stmt);
+                $pdo->query($stmt)->closeCursor();
             }
         }
     }
