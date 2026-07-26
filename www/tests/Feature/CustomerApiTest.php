@@ -27,4 +27,30 @@ final class CustomerApiTest extends ApiTestCase
         ], $token);
         $this->assertTrue($put->isSuccess());
     }
+
+    public function test_customer_search_returns_masked_phone(): void
+    {
+        $token = $this->loginAdmin();
+        $this->api('POST', '/chats/rooms', [
+            'customerName'  => '마스킹고객',
+            'customerPhone' => '01012349876',
+            'inquiryType'   => '테스트',
+        ], $token);
+
+        $res = $this->api('GET', '/search/customers', null, $token, ['q' => '마스킹']);
+        $this->assertTrue($res->isSuccess());
+        $customers = $res->body['data']['customers'] ?? $res->body['data'] ?? [];
+        $this->assertNotEmpty($customers);
+
+        $found = false;
+        foreach ($customers as $c) {
+            if ($c['name'] === '마스킹고객') {
+                $found = true;
+                $this->assertArrayHasKey('phoneMasked', $c);
+                $this->assertStringContainsString('****', $c['phoneMasked']);
+                $this->assertArrayNotHasKey('phone', $c, 'Raw phone should not be exposed');
+            }
+        }
+        $this->assertTrue($found, 'Customer should be found in search results');
+    }
 }
