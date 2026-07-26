@@ -54,7 +54,7 @@ final class CrmCloseTest extends ApiTestCase
             ':sub' => '5G 결합',
         ]);
 
-        $base = strtotime('-6 minutes');
+        $base = strtotime('-7 minutes');
         for ($i = 0; $i < 4; $i++) {
             $msgId = sprintf('55555555-5555-4555-8555-%012d', $i);
             $senderType = $i % 2 === 0 ? 'customer' : 'agent';
@@ -68,7 +68,7 @@ final class CrmCloseTest extends ApiTestCase
                 ':st' => $senderType,
                 ':sid' => $senderId,
                 ':content' => "테스트 메시지 {$i}",
-                ':ts' => $base + ($i * 90),
+                ':ts' => $base + ($i * 120),
             ]);
         }
     }
