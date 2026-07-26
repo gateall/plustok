@@ -16,6 +16,11 @@ final class ConsultSchema
         return acep_column_exists($pdo, $table, $column);
     }
 
+    public static function resetStatusEnumCache(): void
+    {
+        self::$statusEnumCache = null;
+    }
+
     /** @return list<string> */
     public static function statusEnumValues(PDO $pdo): array
     {

@@ -3,6 +3,10 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+require_once dirname(__DIR__, 2) . '/includes/util/ConsultSchema.php';
+require_once dirname(__DIR__, 2) . '/includes/util/CrmSchema.php';
+require_once dirname(__DIR__, 2) . '/includes/util/ProductSchema.php';
+
 use ConsultSchema;
 use CrmSchema;
 use PHPUnit\Framework\TestCase;
@@ -24,6 +28,7 @@ final class ConsultApiLegacyTest extends TestCase
         $pdo->exec(
             "ALTER TABLE consults MODIFY status ENUM('receipt','consulting','quoted') NOT NULL DEFAULT 'receipt'"
         );
+        ConsultSchema::resetStatusEnumCache();
 
         $this->assertSame('receipt', ConsultSchema::initialStatus($pdo));
     }
@@ -31,16 +36,22 @@ final class ConsultApiLegacyTest extends TestCase
     public function test_build_insert_skips_missing_columns(): void
     {
         $pdo = $this->ensureSchema();
-        $pdo->exec('ALTER TABLE consults DROP COLUMN detail_json');
-        $pdo->exec('ALTER TABLE consults DROP COLUMN referer');
-        $pdo->exec('ALTER TABLE customers DROP COLUMN region');
+        if (ConsultSchema::hasColumn($pdo, 'consults', 'detail_json')) {
+            $pdo->exec('ALTER TABLE consults DROP COLUMN detail_json');
+        }
+        if (ConsultSchema::hasColumn($pdo, 'consults', 'referer')) {
+            $pdo->exec('ALTER TABLE consults DROP COLUMN referer');
+        }
+        if (ConsultSchema::hasColumn($pdo, $legacyTable = CrmSchema::legacyCustomerTable($pdo), 'region')) {
+            $pdo->exec('ALTER TABLE `' . $legacyTable . '` DROP COLUMN region');
+        }
 
         $pdo->exec(
-            "INSERT INTO sites (id, site_code, site_name, brand, api_key, use_yn)
+            "INSERT IGNORE INTO sites (id, site_code, site_name, brand, api_key, use_yn)
              VALUES (1, 'legacy-test', 'Legacy', 'LegacyBrand', 'test-key-legacy', 1)"
         );
 
-        $cust = ConsultSchema::buildInsert($pdo, 'customers', [
+        $cust = ConsultSchema::buildInsert($pdo, $legacyTable, [
             'customer_no' => 'M202607220099',
             'name'        => '레거시',
             'phone'       => '01011112222',
@@ -49,7 +60,7 @@ final class ConsultApiLegacyTest extends TestCase
             'region' => '서울',
         ]);
         $pdo->prepare(
-            'INSERT INTO customers (' . implode(', ', $cust['columns']) . ') VALUES ('
+            'INSERT INTO `' . $legacyTable . '` (' . implode(', ', $cust['columns']) . ') VALUES ('
             . implode(', ', $cust['placeholders']) . ')'
         )->execute($cust['params']);
         $customerId = (int)$pdo->lastInsertId();
@@ -87,6 +98,16 @@ final class ConsultApiLegacyTest extends TestCase
     public function test_product_schema_active_sql_uses_status_column(): void
     {
         $pdo = $this->ensureSchema();
+        require_once dirname(__DIR__, 2) . '/includes/util/ProductSchema.php';
+        require_once dirname(__DIR__, 2) . '/includes/util/CrmSchema.php';
+        if (!acep_table_exists($pdo, 'products')) {
+            $pdo->exec(
+                'CREATE TABLE products (
+                    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                    use_yn TINYINT NOT NULL DEFAULT 1
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
+            );
+        }
         if (\acep_column_exists($pdo, 'products', 'use_yn')) {
             $pdo->exec('ALTER TABLE products CHANGE use_yn status TINYINT NOT NULL DEFAULT 1');
         }
