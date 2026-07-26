@@ -39,16 +39,20 @@ final class CustomerApiTest extends ApiTestCase
 
         $res = $this->api('GET', '/search/customers', null, $token, ['q' => '마스킹']);
         $this->assertTrue($res->isSuccess());
-        $customers = $res->body['data']['customers'] ?? $res->body['data'] ?? [];
+        $this->assertArrayHasKey('data', $res->body);
+        $this->assertArrayHasKey('results', $res->body['data']);
+        $this->assertIsArray($res->body['data']['results']);
+
+        $customers = $res->body['data']['results'];
         $this->assertNotEmpty($customers);
 
         $found = false;
-        foreach ($customers as $c) {
-            if ($c['name'] === '마스킹고객') {
+        foreach ($customers as $customer) {
+            if ($customer['name'] === '마스킹고객') {
                 $found = true;
-                $this->assertArrayHasKey('phoneMasked', $c);
-                $this->assertStringContainsString('****', $c['phoneMasked']);
-                $this->assertArrayNotHasKey('phone', $c, 'Raw phone should not be exposed');
+                $this->assertArrayHasKey('phoneMasked', $customer);
+                $this->assertStringContainsString('****', $customer['phoneMasked']);
+                $this->assertArrayNotHasKey('phone', $customer, 'Raw phone should not be exposed');
             }
         }
         $this->assertTrue($found, 'Customer should be found in search results');
