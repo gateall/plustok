@@ -98,7 +98,7 @@ final class CustomerRepository
     public function search(string $q, int $limit): array
     {
         $st = $this->pdo->prepare(
-            'SELECT id, name, tags FROM customers
+            'SELECT id, name, phone, tags FROM customers
              WHERE deleted_at IS NULL AND name LIKE :q
              ORDER BY updated_at DESC LIMIT ' . (int)$limit
         );

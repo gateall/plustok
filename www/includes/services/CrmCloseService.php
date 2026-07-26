@@ -75,7 +75,7 @@ final class CrmCloseService
             }
             try {
                 $result = $this->doClose($room, $agentId, $feedback, $summaryOverride);
-                $this->rooms->markCrmSaved($roomId, (int)$result['consult_id']);
+                $this->rooms->markCrmSaved($roomId, (int)$result['consultId']);
                 return $result;
             } catch (Throwable $e) {
                 $lastEx = $e;
