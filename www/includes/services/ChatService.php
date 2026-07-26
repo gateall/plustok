@@ -221,7 +221,7 @@ final class ChatService
         }
 
         $messageIds = $body['messageIds'] ?? [];
-        if (!is_array($messageIds) || $messageIds === []) {
+        if (!is_array($messageIds)) {
             acep_error('VALIDATION_ERROR', 'messageIds 배열이 필요합니다.', 400);
         }
 
