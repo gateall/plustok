@@ -37,3 +37,4 @@ Thumbs.db
 db/mariadb-portable/
 db/mariadb-data/
 
+www/config/acep.local.php
