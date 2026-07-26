@@ -195,13 +195,29 @@ final class ChatService
                     false,
                 );
             } catch (AcepHttpResponse $e) {
-                if ($e->httpCode >= 500) {
-                    $this->rooms->markCrmFailed($roomId);
+                $this->rooms->markCrmFailed($roomId);
+                $this->audit->agentAction($agentId, 'room.close.crm_failed', 'chat_room', $roomId, [
+                    'http'    => $e->http,
+                    'code'    => $e->body['error']['code'] ?? null,
+                    'message' => $e->body['error']['message'] ?? null,
+                ]);
+                if ($e->http >= 500) {
                     throw $e;
                 }
-                // Room is already closed; optional CRM validation/save failure must not fail close.
-            } catch (Throwable) {
+                // Room already closed; CRM is best-effort — surface failure explicitly in response.
+                $crm = [
+                    'ok'    => false,
+                    'error' => $e->body['error'] ?? ['code' => 'CRM_SAVE_FAILED'],
+                ];
+            } catch (Throwable $e) {
                 $this->rooms->markCrmFailed($roomId);
+                $this->audit->agentAction($agentId, 'room.close.crm_failed', 'chat_room', $roomId, [
+                    'message' => $e->getMessage(),
+                ]);
+                $crm = [
+                    'ok'    => false,
+                    'error' => ['code' => 'CRM_SAVE_FAILED', 'message' => $e->getMessage()],
+                ];
             }
         }
 
