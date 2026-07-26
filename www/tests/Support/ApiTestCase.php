@@ -15,6 +15,8 @@ abstract class ApiTestCase extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        require_once dirname(__DIR__, 2) . '/config/app.php';
+        require_once dirname(__DIR__, 2) . '/includes/db.php';
         require_once dirname(__DIR__, 2) . '/includes/api_envelope.php';
         \acep_test_mode(true);
         \JwtMiddleware::reset();
@@ -25,8 +27,19 @@ abstract class ApiTestCase extends TestCase
         $_SERVER['HTTP_AUTHORIZATION'] = '';
         \acep_set_request_json(null);
 
+        require_once dirname(__DIR__, 2) . '/includes/db.php';
+        \db_reset();
+
         $pdo = $this->ensureSchema();
         $this->admin = $this->seedAdmin($pdo);
+    }
+
+    protected function tearDown(): void
+    {
+        if (function_exists('db_reset')) {
+            \db_reset();
+        }
+        parent::tearDown();
     }
 
     /** @param array<string,mixed>|null $json */
@@ -46,8 +59,9 @@ abstract class ApiTestCase extends TestCase
         $_SERVER['HTTP_AUTHORIZATION'] = $token ? 'Bearer ' . $token : '';
 
         require_once dirname(__DIR__, 2) . '/includes/api_envelope.php';
+        require_once dirname(__DIR__, 2) . '/api/v1/bootstrap.php';
         \acep_test_mode(true);
-        acep_bootstrap(true);
+        \acep_bootstrap(true);
 
         require_once dirname(__DIR__, 2) . '/api/v1/router.php';
 

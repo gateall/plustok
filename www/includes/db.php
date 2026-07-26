@@ -6,33 +6,39 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../config/app.php';
 
+/** @var PDO|null */
+$GLOBALS['acep_pdo'] = $GLOBALS['acep_pdo'] ?? null;
+
+function db_reset(): void
+{
+    $GLOBALS['acep_pdo'] = null;
+}
+
 function db(): PDO
 {
-    static $pdo = null;
-    if ($pdo instanceof PDO) {
-        return $pdo;
+    if ($GLOBALS['acep_pdo'] instanceof PDO) {
+        return $GLOBALS['acep_pdo'];
     }
 
     $cfg = load_db_config();
 
+    $port = (int) ($cfg['port'] ?? 3306);
     $dsn = sprintf(
-        'mysql:host=%s;dbname=%s;charset=%s',
+        'mysql:host=%s;port=%d;dbname=%s;charset=%s',
         $cfg['host'],
+        $port,
         $cfg['name'],
         $cfg['charset'] ?? 'utf8mb4'
     );
 
-    $pdo = new PDO($dsn, $cfg['user'], $cfg['pass'], [
+    $GLOBALS['acep_pdo'] = new PDO($dsn, $cfg['user'], $cfg['pass'], [
         PDO::ATTR_ERRMODE                  => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE       => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES         => false,
-        // 네이티브 프리페어(EMULATE_PREPARES=false)에서 이전 쿼리의 결과를 다 안 비운 채
-        // 같은 커넥션에 새 쿼리를 보내면 "Cannot execute queries while other unbuffered
-        // queries are active" 에러가 난다. 버퍼드 모드로 고정해 이 클래스의 에러를 없앤다.
         PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true,
     ]);
 
-    return $pdo;
+    return $GLOBALS['acep_pdo'];
 }
 
 /**

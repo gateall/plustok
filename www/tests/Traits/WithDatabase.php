@@ -42,11 +42,13 @@ trait WithDatabase
     protected function freshPdo(): PDO
     {
         $cfg = require dirname(__DIR__, 2) . '/config/database.test.php';
-        $dsn = sprintf('mysql:host=%s;dbname=%s;charset=%s', $cfg['host'], $cfg['name'], $cfg['charset']);
+        $port = (int) ($cfg['port'] ?? 3306);
+        $dsn = sprintf('mysql:host=%s;port=%d;dbname=%s;charset=%s', $cfg['host'], $port, $cfg['name'], $cfg['charset']);
         try {
             return new PDO($dsn, $cfg['user'], $cfg['pass'], [
                 PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true,
             ]);
         } catch (\PDOException $e) {
             $this->markTestSkipped(
@@ -86,6 +88,7 @@ trait WithDatabase
                 'V1.5.0__agents_ai_ops.sql',
                 'V1.5.3__phase1_v15_tables.sql',
                 'V3.0.1__phase3_crm.sql',
+                'V3.1.0__contracts.sql',
             ];
 
         foreach ($files as $file) {
@@ -103,8 +106,11 @@ trait WithDatabase
 
     protected function truncateTables(PDO $pdo, string $profile): void
     {
+        require_once dirname(__DIR__, 2) . '/includes/db.php';
+        \db_reset();
         $pdo->exec('SET foreign_key_checks = 0');
         $tables = [
+            'contract_payments', 'contracts',
             'agent_notifications', 'ai_failover_log', 'ai_logs', 'ai_recommendations',
             'schedules_dedup_guard', 'schedules', 'consult_history', 'consults',
             'customer_bridge', 'sites',

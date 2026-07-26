@@ -18,6 +18,7 @@ function acep_route(string $method, string $uri, ?array $container = null): void
     $aiRouter = $c['aiRouter'];
     $fileSvc = $c['fileSvc'];
     $pdo = $c['pdo'];
+    $adminContractSvc = $c['adminContractSvc'];
 
     $uuid = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
 
@@ -213,6 +214,9 @@ function acep_route(string $method, string $uri, ?array $container = null): void
         acep_success($fileSvc->getById($m[1], (string)$claims['sub'], (string)$claims['role']));
     }
 
+    // --- Admin: Contracts ---
+    acep_route_contracts($method, $uri, $c);
+
     // --- V1.5 (loaded when services exist) ---
     if (isset($c['notificationSvc'], $c['settingsSvc'], $c['searchSvc'], $c['dashboardSvc'])) {
         acep_route_v15($method, $uri, $c);
@@ -286,6 +290,61 @@ function acep_route(string $method, string $uri, ?array $container = null): void
     }
 
     acep_error('ROOM_NOT_FOUND', 'API 경로를 찾을 수 없습니다.', 404);
+}
+
+/** @param array<string,mixed> $c */
+function acep_route_contracts(string $method, string $uri, array $c): void
+{
+    $contracts = $c['adminContractSvc'];
+    $uuid = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
+    $readRoles = ['admin', 'operator'];
+    $writeRoles = ['admin', 'operator'];
+    $deleteRoles = ['admin'];
+
+    // 정적 목록/생성 Route를 동적 {id} Route보다 먼저 등록한다.
+    if ($method === 'GET' && $uri === '/admin/contracts') {
+        JwtMiddleware::requireRole($readRoles);
+        acep_success($contracts->list($_GET));
+        return;
+    }
+    if ($method === 'POST' && $uri === '/admin/contracts') {
+        $claims = JwtMiddleware::requireRole($writeRoles);
+        acep_success($contracts->create((string)$claims['sub'], acep_read_json()), 201);
+        return;
+    }
+
+    // /status, /cancel, /archive 같은 하위 액션은 순수 {id} 패턴보다 먼저 매칭되도록 위에 둔다.
+    if ($method === 'PATCH' && preg_match("#^/admin/contracts/({$uuid})/status$#i", $uri, $m)) {
+        $claims = JwtMiddleware::requireRole($writeRoles);
+        acep_success($contracts->updateStatus((string)$claims['sub'], $m[1], acep_read_json()));
+        return;
+    }
+    if ($method === 'POST' && preg_match("#^/admin/contracts/({$uuid})/cancel$#i", $uri, $m)) {
+        $claims = JwtMiddleware::requireRole($writeRoles);
+        acep_success($contracts->cancel((string)$claims['sub'], $m[1], acep_read_json()));
+        return;
+    }
+    if ($method === 'POST' && preg_match("#^/admin/contracts/({$uuid})/archive$#i", $uri, $m)) {
+        $claims = JwtMiddleware::requireRole($writeRoles);
+        acep_success($contracts->archive((string)$claims['sub'], $m[1]));
+        return;
+    }
+
+    if ($method === 'GET' && preg_match("#^/admin/contracts/({$uuid})$#i", $uri, $m)) {
+        JwtMiddleware::requireRole($readRoles);
+        acep_success($contracts->get($m[1]));
+        return;
+    }
+    if ($method === 'PUT' && preg_match("#^/admin/contracts/({$uuid})$#i", $uri, $m)) {
+        $claims = JwtMiddleware::requireRole($writeRoles);
+        acep_success($contracts->update((string)$claims['sub'], $m[1], acep_read_json()));
+        return;
+    }
+    if ($method === 'DELETE' && preg_match("#^/admin/contracts/({$uuid})$#i", $uri, $m)) {
+        $claims = JwtMiddleware::requireRole($deleteRoles);
+        acep_success($contracts->delete((string)$claims['sub'], $m[1]));
+        return;
+    }
 }
 
 /** @param array<string,mixed> $c */
@@ -406,27 +465,27 @@ function acep_route_admin(string $method, string $uri, array $c): void
     }
 
     if ($method === 'GET' && $uri === '/admin/stats/overview') {
-        JwtMiddleware::requireRole($readRoles);
+        JwtMiddleware::requireRole($adminWriteRoles);
         acep_success($adminStatsSvc->overview($_GET));
     }
     if ($method === 'GET' && $uri === '/admin/stats/sentiment') {
-        JwtMiddleware::requireRole($readRoles);
+        JwtMiddleware::requireRole($adminWriteRoles);
         acep_success($adminStatsSvc->sentiment($_GET));
     }
     if ($method === 'GET' && $uri === '/admin/stats/funnel') {
-        JwtMiddleware::requireRole($readRoles);
+        JwtMiddleware::requireRole($adminWriteRoles);
         acep_success($adminStatsSvc->funnel($_GET));
     }
     if ($method === 'GET' && $uri === '/admin/stats/agents') {
-        JwtMiddleware::requireRole($readRoles);
+        JwtMiddleware::requireRole($adminWriteRoles);
         acep_success($adminStatsSvc->agents($_GET));
     }
     if ($method === 'GET' && $uri === '/admin/stats/trends') {
-        JwtMiddleware::requireRole($readRoles);
+        JwtMiddleware::requireRole($adminWriteRoles);
         acep_success($adminStatsSvc->hourlyTrends($_GET));
     }
     if ($method === 'GET' && $uri === '/admin/dashboard/stats') {
-        JwtMiddleware::requireRole($readRoles);
+        JwtMiddleware::requireRole($adminWriteRoles);
         acep_success($adminStatsSvc->overview($_GET));
     }
 

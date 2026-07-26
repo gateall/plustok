@@ -2,58 +2,113 @@
 declare(strict_types=1);
 /**
  * ACEP V3.0 설정 — JWT, PII, 토큰 TTL.
- * 운영: config/acep.local.php 로 오버라이드 (gitignore 권장).
+ * Secrets: 환경변수 → acep.local.php (non-tracked) → fail-closed (production).
  */
 
-// acep.local.php 먼저 로드 — const는 define()으로 재정의 불가하므로 define 기본값 패턴 사용
-$acepLocal = __DIR__ . '/acep.local.php';
-if (is_file($acepLocal)) {
-    require $acepLocal;
+function acep_define_from_env(string $name): void
+{
+    if (defined($name)) {
+        return;
+    }
+    $value = getenv($name);
+    if ($value !== false && $value !== '') {
+        define($name, $value);
+    }
 }
 
-if (!defined('ACEP_JWT_SECRET')) {
-    define('ACEP_JWT_SECRET', 'CHANGE_ME_IN_acep.local.php');
-}
-if (!defined('ACEP_PII_KEY')) {
-    define('ACEP_PII_KEY', '');
-}
-if (!defined('ACEP_REDIS_URL')) {
-    define('ACEP_REDIS_URL', '');
-}
-if (!defined('ACEP_CHAT_SERVER_URL')) {
-    define('ACEP_CHAT_SERVER_URL', '');
-}
-if (!defined('ACEP_CHAT_INTERNAL_SECRET')) {
-    define('ACEP_CHAT_INTERNAL_SECRET', '');
+function acep_define_default(string $name, mixed $value): void
+{
+    if (!defined($name)) {
+        define($name, $value);
+    }
 }
 
-const ACEP_JWT_ACCESS_TTL = 86400;   // 24h
-const ACEP_JWT_REFRESH_TTL = 604800; // 7d
-const ACEP_CUSTOMER_JWT_TTL = 14400; // 4h — embed chat widget session
-const ACEP_REFRESH_COOKIE = 'acep_refresh';
+function acep_is_rejected_jwt_secret(string $secret): bool
+{
+    $secret = trim($secret);
+    if ($secret === '') {
+        return true;
+    }
+    if (strlen($secret) < 32) {
+        return true;
+    }
+    $lower = strtolower($secret);
+    $blocked = [
+        'change_me_in_acep.local.php',
+        'change_me',
+        'your-256-bit-secret',
+        'default-secret',
+        'test-only',
+    ];
+    foreach ($blocked as $needle) {
+        if (str_contains($lower, $needle)) {
+            return true;
+        }
+    }
+    return false;
+}
 
-// 로그인 잠금 (API-001)
-const ACEP_LOGIN_MAX_FAIL = 3;
-const ACEP_LOGIN_LOCK_MINUTES = 30;
+function acep_bootstrap_secrets(): void
+{
+    static $bootstrapped = false;
+    if ($bootstrapped) {
+        return;
+    }
+    $bootstrapped = true;
 
-// 비밀번호 재설정 토큰 유효시간
-const ACEP_RESET_TOKEN_TTL_MINUTES = 30;
+    // 1) Environment variables (highest priority)
+    acep_define_from_env('ACEP_JWT_SECRET');
+    acep_define_from_env('ACEP_PII_KEY');
+    acep_define_from_env('ACEP_REDIS_URL');
+    acep_define_from_env('ACEP_CHAT_SERVER_URL');
+    acep_define_from_env('ACEP_CHAT_INTERNAL_SECRET');
 
-// bcrypt
-const ACEP_PASSWORD_COST = 12;
+    // 2) Non-tracked local overrides
+    $local = __DIR__ . '/acep.local.php';
+    if (is_file($local)) {
+        require $local;
+    }
+
+    // 3) Non-secret defaults
+    acep_define_default('ACEP_JWT_ACCESS_TTL', 86400);
+    acep_define_default('ACEP_JWT_REFRESH_TTL', 604800);
+    acep_define_default('ACEP_CUSTOMER_JWT_TTL', 14400);
+    acep_define_default('ACEP_REFRESH_COOKIE', 'acep_refresh');
+    acep_define_default('ACEP_LOGIN_MAX_FAIL', 3);
+    acep_define_default('ACEP_LOGIN_LOCK_MINUTES', 30);
+    acep_define_default('ACEP_RESET_TOKEN_TTL_MINUTES', 30);
+    acep_define_default('ACEP_PASSWORD_COST', 12);
+    acep_define_default('ACEP_PII_KEY', '');
+    acep_define_default('ACEP_REDIS_URL', '');
+    acep_define_default('ACEP_CHAT_SERVER_URL', '');
+    acep_define_default('ACEP_CHAT_INTERNAL_SECRET', '');
+
+    // 4) Fail-closed secret validation
+    if (!defined('ACEP_JWT_SECRET')) {
+        if (defined('ACEP_TESTING') && ACEP_TESTING) {
+            define('ACEP_JWT_SECRET', hash('sha256', 'acep-phpunit-isolated-jwt-key-v1'));
+        } else {
+            throw new RuntimeException('ACEP_JWT_SECRET is not configured');
+        }
+    }
+
+    $testing = defined('ACEP_TESTING') && ACEP_TESTING;
+    if (!$testing && acep_is_rejected_jwt_secret(ACEP_JWT_SECRET)) {
+        throw new RuntimeException('ACEP_JWT_SECRET placeholder or weak value rejected');
+    }
+}
+
+acep_bootstrap_secrets();
 
 function acep_jwt_secret(): string
 {
-    $s = ACEP_JWT_SECRET;
-    if ($s === '' || $s === 'CHANGE_ME_IN_acep.local.php') {
-        // 개발용 fallback — 운영에서는 acep.local.php 필수
-        return hash('sha256', BASE_PATH . 'acep-dev-secret');
-    }
-    return $s;
+    acep_bootstrap_secrets();
+    return ACEP_JWT_SECRET;
 }
 
 function acep_pii_key(): string
 {
+    acep_bootstrap_secrets();
     $k = ACEP_PII_KEY;
     if ($k !== '') {
         $bin = base64_decode($k, true);

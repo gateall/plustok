@@ -71,7 +71,7 @@ final class AdminPromptService
             acep_error('ADMIN_CONFLICT', '이미 존재하는 promptKey입니다.', 409);
         }
 
-        $id = Uuid::v4();
+        $id = uuid_v4();
         $this->pdo->prepare(
             'INSERT INTO ai_prompts (id, role, version, prompt_id, content, is_active, changelog, created_by)
              VALUES (:id, :role, :ver, :pid, :content, 0, :log, :by)'

@@ -210,12 +210,29 @@ final class ChatService
                     false,
                 );
             } catch (AcepHttpResponse $e) {
-                if ($e->httpCode >= 500) {
-                    $this->rooms->markCrmFailed($roomId);
-                }
-                throw $e;
-            } catch (Throwable) {
                 $this->rooms->markCrmFailed($roomId);
+                $this->audit->agentAction($agentId, 'room.close.crm_failed', 'chat_room', $roomId, [
+                    'http'    => $e->http,
+                    'code'    => $e->body['error']['code'] ?? null,
+                    'message' => $e->body['error']['message'] ?? null,
+                ]);
+                if ($e->http >= 500) {
+                    throw $e;
+                }
+                // Room already closed; CRM is best-effort — surface failure explicitly in response.
+                $crm = [
+                    'ok'    => false,
+                    'error' => $e->body['error'] ?? ['code' => 'CRM_SAVE_FAILED'],
+                ];
+            } catch (Throwable $e) {
+                $this->rooms->markCrmFailed($roomId);
+                $this->audit->agentAction($agentId, 'room.close.crm_failed', 'chat_room', $roomId, [
+                    'message' => $e->getMessage(),
+                ]);
+                $crm = [
+                    'ok'    => false,
+                    'error' => ['code' => 'CRM_SAVE_FAILED', 'message' => $e->getMessage()],
+                ];
             }
         }
 
@@ -236,7 +253,7 @@ final class ChatService
         }
 
         $messageIds = $body['messageIds'] ?? [];
-        if (!is_array($messageIds) || $messageIds === []) {
+        if (!is_array($messageIds)) {
             acep_error('VALIDATION_ERROR', 'messageIds 배열이 필요합니다.', 400);
         }
 

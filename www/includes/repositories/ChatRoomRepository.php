@@ -100,8 +100,11 @@ final class ChatRoomRepository
         }
 
         if ($search !== null && $search !== '') {
-            $where[] = '(c.name LIKE :q OR cr.inquiry_type LIKE :q OR cr.subject LIKE :q)';
-            $params[':q'] = '%' . $search . '%';
+            $like = '%' . $search . '%';
+            $where[] = '(c.name LIKE :q1 OR cr.inquiry_type LIKE :q2 OR cr.subject LIKE :q3)';
+            $params[':q1'] = $like;
+            $params[':q2'] = $like;
+            $params[':q3'] = $like;
         }
 
         $order = match ($sort) {
@@ -147,8 +150,11 @@ final class ChatRoomRepository
         }
 
         if ($search !== null && $search !== '') {
-            $where[] = '(c.name LIKE :q OR cr.inquiry_type LIKE :q OR cr.subject LIKE :q)';
-            $params[':q'] = '%' . $search . '%';
+            $like = '%' . $search . '%';
+            $where[] = '(c.name LIKE :q1 OR cr.inquiry_type LIKE :q2 OR cr.subject LIKE :q3)';
+            $params[':q1'] = $like;
+            $params[':q2'] = $like;
+            $params[':q3'] = $like;
         }
 
         $sql = 'SELECT COUNT(*) FROM chat_rooms cr
@@ -304,7 +310,7 @@ final class ChatRoomRepository
             'SELECT TIMESTAMPDIFF(SECOND,
                 (SELECT MIN(created_at) FROM chat_messages WHERE room_id = :rid1 AND deleted_at IS NULL),
                 COALESCE(closed_at, CURRENT_TIMESTAMP(3))
-             FROM chat_rooms WHERE id = :rid2'
+             ) FROM chat_rooms WHERE id = :rid2'
         );
         $st->execute([':rid1' => $roomId, ':rid2' => $roomId]);
         $v = $st->fetchColumn();

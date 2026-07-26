@@ -48,7 +48,7 @@ final class V15ApiTest extends ApiTestCase
     public function test_notifications_list_and_read(): void
     {
         $token = $this->loginAdmin();
-        $pdo = $this->ensureSchema();
+        $pdo = $this->freshPdo();
         $nid = '22222222-2222-4222-8222-222222222222';
         $pdo->prepare(
             'INSERT INTO agent_notifications (id, agent_id, type, title, body)
