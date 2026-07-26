@@ -15,6 +15,7 @@ abstract class ApiTestCase extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        require_once dirname(__DIR__, 2) . '/config/app.php';
         require_once dirname(__DIR__, 2) . '/includes/api_envelope.php';
         \acep_test_mode(true);
         \JwtMiddleware::reset();
