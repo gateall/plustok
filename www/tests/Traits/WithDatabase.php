@@ -61,6 +61,8 @@ trait WithDatabase
 
     protected function truncateTables(PDO $pdo): void
     {
+        require_once dirname(__DIR__, 2) . '/includes/db.php';
+        \db_reset();
         $pdo->exec('SET foreign_key_checks = 0');
         foreach ([
             'contract_payments', 'contracts',
