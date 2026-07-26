@@ -14,7 +14,7 @@ final class CrmCloseTest extends ApiTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $pdo = $this->ensureSchema();
+        $pdo = $this->freshPdo();
         $this->seedChatFixtures($pdo);
     }
 
@@ -97,8 +97,10 @@ final class CrmCloseTest extends ApiTestCase
         $this->assertNotEmpty($data['scheduleIds']);
         $this->assertGreaterThanOrEqual(250, $data['ai']['summaryLength']);
 
-        $pdo = $this->ensureSchema();
-        $room = $pdo->query("SELECT crm_save_status FROM chat_rooms WHERE id = '{$this->roomId}'")->fetch();
+        $pdo = $this->freshPdo();
+        $st = $pdo->prepare('SELECT crm_save_status FROM chat_rooms WHERE id = :id');
+        $st->execute([':id' => $this->roomId]);
+        $room = $st->fetch();
         $this->assertSame('saved', $room['crm_save_status']);
     }
 
