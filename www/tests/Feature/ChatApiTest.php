@@ -73,7 +73,7 @@ final class ChatApiTest extends ApiTestCase
 
         $other = $this->api('GET', '/chats/' . $roomB, null, $customerToken);
         $this->assertFalse($other->isSuccess());
-        $this->assertSame(403, $other->httpCode);
+        $this->assertSame(403, $other->http);
     }
 
     private function createRoomWithPhone(string $token, string $phone): string
