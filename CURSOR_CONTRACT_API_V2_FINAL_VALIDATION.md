@@ -213,42 +213,54 @@ Secrets Committed: NO (.env.test gitignored)
 ## 14. Cursor Verdict
 
 ```yaml
-Verdict: PASS WITH NOTES
+Verdict: PASS WITH NOTES (Contract scope) — Release Gate BLOCK (full suite + PM criteria)
 Contract API v2: PASS (14/14, 84 assertions, 0 skip)
 Migration + FK Runtime: PASS
 MariaDB 11.8.8 / 3307: PASS
 Production Safety: PASS
-Full PHPUnit: NOT CLEAN (non-Contract)
-Working Tree: NOT CLEAN (pending commit)
+Full PHPUnit: NOT CLEAN (4 errors, 2 failures — see §Full Suite Failure Details)
+Working Tree: CLEAN (post-commit f12fb5f9)
+Remote Push: PASS (HEAD = Remote)
 Merge / FTP / Deploy: NO
 Next Owner: Claude Code
 ```
 
 ---
 
-## 15. Required Follow-up
+## 15. Focused Commits (2026-07-26 — PM approved)
 
-1. **PM:** Approve focused commit(s) for Contract fixes + test-infra (Class A+B)
-2. **Claude Code:** Independent runtime/security review
-3. **Separate:** Fix `ChatRoomRepository` search `:q` duplication for full suite green
-4. **Operator:** Ensure `.env.test` includes `ACEP_TEST_DB_HOST=127.0.0.1`
+| Commit | SHA | Message |
+|--------|-----|---------|
+| Contract bugfix | `9006915d` | `fix(contract-api): correct search bindings and signed delete guard` |
+| Test infra | `4680af0a` | `fix(test-infra): add isolated MariaDB test environment` |
+| Migration | `e7ff60b6` | `fix(migration): align V1.5 schema with MariaDB test runtime` |
+| Example port | `ab4aabb8` | `fix(test-infra): align database.test.php.example with Docker port` |
+| Docs | `f12fb5f9` | `docs(pm): record contract API v2 final validation` |
+
+**Final HEAD:** `f12fb5f9` = **origin/feature/contract-api-v2**
 
 ---
 
-## Fix Files Pending Commit (not pushed)
+## 16. Full Suite Failure Details (HEAD f12fb5f9)
+
+| # | Test | File | Failure/Error | Module | Contract Commit Related | Base SHA (7b65c50e) |
+|---|------|------|---------------|--------|-------------------------|---------------------|
+| 1 | Admin lists and creates prompt | AdminPromptFailoverTest.php | `Class "Uuid" not found` | AdminPromptService | NO | 41 skipped (no DB infra) |
+| 2 | Mark read | ChatApiTest.php:56 | assert false is true | Chat API | NO | skipped |
+| 3 | Consults close creates crm | CrmCloseTest.php:88 | SQL syntax `FROM chat_rooms` | ChatRoomRepository:205 | NO | skipped |
+| 4 | Admin stats overview requires admin | CrmCloseTest.php:109 | expected 403 got null | CRM stats | NO | skipped |
+| 5 | Search customers and chats | V15ApiTest.php:36 | HY093 `:q` param | ChatRoomRepository:67 | NO (same pattern, not fixed) | skipped |
+| 6 | Notifications list and read | V15ApiTest.php:56 | FK agent_notifications | V15 fixture | NO | skipped |
+
+**Interpretation:** Base SHA with same Docker env runs **41 skipped / 2 assertions** (no test-infra bootstrap). Failures are **exposed by enabling DB tests**, not introduced by Contract Class A commits. Release Gate remains BLOCK until full suite triaged.
+
+**Owners:** ChatRoomRepository `:q` + SQL (#3,#5) → backend; Uuid autoload (#1) → backend; V15 fixture (#6) → test; Chat/CrmClose (#2,#4) → separate triage.
+
+---
+
+## 17. Re-validation on Final HEAD
 
 ```text
-www/includes/repositories/ContractRepository.php
-www/includes/services/AdminContractService.php
-www/migrations/lib.php
-www/migrations/V1.5.0__agents_ai_ops.sql
-www/tests/Support/ApiTestCase.php
-www/tests/Traits/WithDatabase.php
-www/tests/bootstrap.php
-www/includes/db.php
-www/config/database.test.php
-www/config/database.test.php.example
-.gitignore
-docker-compose.yml
-.env.test.example
+Contract Tests: 14 / 84 assertions / 0 skip / 0 fail / 0 error — PASS
+Full PHPUnit: 42 / 158 assertions / 4 errors / 2 failures — BLOCK (release)
 ```
