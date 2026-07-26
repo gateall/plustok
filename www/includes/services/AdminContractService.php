@@ -302,11 +302,11 @@ final class AdminContractService
 
     private function deleteBlockReason(array $contract): ?string
     {
+        if ($contract['signedAt'] !== null || ($contract['status'] ?? '') === 'signed') {
+            return 'SIGNED';
+        }
         if ($contract['status'] !== 'draft') {
             return 'NOT_DRAFT';
-        }
-        if ($contract['signedAt'] !== null) {
-            return 'SIGNED';
         }
         if ($contract['_hasPayments']) {
             return 'PAYMENT_EXISTS';

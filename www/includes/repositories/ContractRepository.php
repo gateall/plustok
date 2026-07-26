@@ -254,8 +254,12 @@ final class ContractRepository
 
         $q = trim((string)($filters['q'] ?? ''));
         if ($q !== '') {
-            $where[] = '(c.contract_no LIKE :q OR c.title LIKE :q OR cu.name LIKE :q OR c.product_name LIKE :q)';
-            $params[':q'] = '%' . $q . '%';
+            $like = '%' . $q . '%';
+            $where[] = '(c.contract_no LIKE :q1 OR c.title LIKE :q2 OR cu.name LIKE :q3 OR c.product_name LIKE :q4)';
+            $params[':q1'] = $like;
+            $params[':q2'] = $like;
+            $params[':q3'] = $like;
+            $params[':q4'] = $like;
         }
 
         if (!empty($filters['status'])) {
