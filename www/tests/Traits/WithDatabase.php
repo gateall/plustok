@@ -101,6 +101,12 @@ trait WithDatabase
         if ($profile === 'acep') {
             require_once $dir . '/phase3_chat_rooms.php';
             acep_migrate_phase3_chat_rooms($pdo);
+            acep_add_column_if_missing(
+                $pdo,
+                'agents',
+                'settings_json',
+                "ALTER TABLE agents ADD COLUMN settings_json JSON NULL COMMENT 'Agent UI preferences' AFTER avatar_url"
+            );
         }
     }
 
