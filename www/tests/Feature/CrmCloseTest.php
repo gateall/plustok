@@ -14,7 +14,7 @@ final class CrmCloseTest extends ApiTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $pdo = $this->freshPdo();
+        $pdo = \db();
         $this->seedChatFixtures($pdo);
     }
 
