@@ -427,27 +427,27 @@ function acep_route_admin(string $method, string $uri, array $c): void
     $adminWriteRoles = ['admin'];
 
     if ($method === 'GET' && $uri === '/admin/stats/overview') {
-        JwtMiddleware::requireRole($readRoles);
+        JwtMiddleware::requireRole($adminWriteRoles);
         acep_success($adminStatsSvc->overview($_GET));
     }
     if ($method === 'GET' && $uri === '/admin/stats/sentiment') {
-        JwtMiddleware::requireRole($readRoles);
+        JwtMiddleware::requireRole($adminWriteRoles);
         acep_success($adminStatsSvc->sentiment($_GET));
     }
     if ($method === 'GET' && $uri === '/admin/stats/funnel') {
-        JwtMiddleware::requireRole($readRoles);
+        JwtMiddleware::requireRole($adminWriteRoles);
         acep_success($adminStatsSvc->funnel($_GET));
     }
     if ($method === 'GET' && $uri === '/admin/stats/agents') {
-        JwtMiddleware::requireRole($readRoles);
+        JwtMiddleware::requireRole($adminWriteRoles);
         acep_success($adminStatsSvc->agents($_GET));
     }
     if ($method === 'GET' && $uri === '/admin/stats/trends') {
-        JwtMiddleware::requireRole($readRoles);
+        JwtMiddleware::requireRole($adminWriteRoles);
         acep_success($adminStatsSvc->hourlyTrends($_GET));
     }
     if ($method === 'GET' && $uri === '/admin/dashboard/stats') {
-        JwtMiddleware::requireRole($readRoles);
+        JwtMiddleware::requireRole($adminWriteRoles);
         acep_success($adminStatsSvc->overview($_GET));
     }
 
