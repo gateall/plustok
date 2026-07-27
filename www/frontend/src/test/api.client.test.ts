@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { apiFetch, setAccessToken, getAccessToken } from '../services/api.client';
+import { apiFetch, refreshToken, setAccessToken, getAccessToken } from '../services/api.client';
 
 describe('api.client', () => {
   beforeEach(() => {
@@ -41,5 +41,19 @@ describe('api.client', () => {
       }),
     );
     await expect(apiFetch('/auth/login')).rejects.toThrow('bad request');
+  });
+
+  it('dedupes concurrent refreshToken calls into a single request', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ success: true, data: { accessToken: 'new-token' }, error: null }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await Promise.all([refreshToken(), refreshToken(), refreshToken()]);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(getAccessToken()).toBe('new-token');
   });
 });

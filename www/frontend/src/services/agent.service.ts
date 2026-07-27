@@ -16,7 +16,8 @@ export const agentService = {
   /** GET /api/v1/admin/agents */
   list: async (): Promise<ConsultAgent[]> => {
     const raw = await apiFetch<AgentListResponse>('/admin/agents');
-    return (raw.data ?? []).map((agent) => ({
+    const items = Array.isArray(raw.data) ? raw.data : [];
+    return items.map((agent) => ({
       id: agent.id,
       displayName: agent.displayName,
     }));

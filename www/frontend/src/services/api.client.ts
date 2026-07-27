@@ -79,13 +79,25 @@ export async function apiFetch<T>(
   return parseResponse<T>(res);
 }
 
+let refreshPromise: Promise<void> | null = null;
+
 export async function refreshToken(): Promise<void> {
-  const res = await fetch(`${API_BASE}/auth/refresh`, {
-    method: 'POST',
-    credentials: 'include',
-  });
-  const data = await parseResponse<{ accessToken: string }>(res);
-  setAccessToken(data.accessToken);
+  if (refreshPromise) {
+    return refreshPromise;
+  }
+  refreshPromise = (async () => {
+    const res = await fetch(`${API_BASE}/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+    const data = await parseResponse<{ accessToken: string }>(res);
+    setAccessToken(data.accessToken);
+  })();
+  try {
+    await refreshPromise;
+  } finally {
+    refreshPromise = null;
+  }
 }
 
 export { API_BASE };

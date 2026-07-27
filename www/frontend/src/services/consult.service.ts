@@ -391,8 +391,9 @@ export const consultService = {
       const raw = await apiFetch<{ id: string; data: ApiTimelineItem[] }>(
         `/admin/consults/${encodeURIComponent(consultId)}/timeline`,
       );
+      const items = Array.isArray(raw.data) ? raw.data : [];
       return {
-        data: { entries: (raw.data ?? []).map(mapTimelineItem), pending: false },
+        data: { entries: items.map(mapTimelineItem), pending: false },
         pending: false,
       };
     } catch (err) {
@@ -418,7 +419,8 @@ export const consultService = {
     const result = await withApiFallback(
       async () => {
         const raw = await apiFetch<{ data: ApiTagItem[] }>(`/admin/consult-tags${qs}`);
-        return (raw.data ?? []).map((t, i) => mapApiTag(t.name, i));
+        const items = Array.isArray(raw.data) ? raw.data : [];
+        return items.map((t, i) => mapApiTag(t.name, i));
       },
       DEFAULT_CONSULT_TAGS.map((t, i) => mapApiTag(t.label, i)),
     );
@@ -450,7 +452,8 @@ export const consultService = {
         const raw = await apiFetch<{ data: ApiAttachmentItem[] }>(
           `/admin/consults/${encodeURIComponent(consultId)}/attachments`,
         );
-        return (raw.data ?? []).map(mapAttachmentItem);
+        const items = Array.isArray(raw.data) ? raw.data : [];
+        return items.map(mapAttachmentItem);
       },
       [],
     );

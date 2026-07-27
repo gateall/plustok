@@ -5,6 +5,7 @@ import { ProtectedRoute } from './features/auth/ProtectedRoute';
 import { AdminRoute } from './features/auth/AdminRoute';
 import AdminLayout from './layouts/AdminLayout';
 import PageLoadingFallback from './components/common/PageLoadingFallback';
+import ErrorBoundary from './components/common/ErrorBoundary';
 import { LANDING_SECTIONS } from './config/publicNav';
 import LoginPage from './pages/LoginPage';
 import FindIdPage from './pages/FindIdPage';
@@ -54,7 +55,9 @@ export default function App() {
           path="/admin"
           element={
             <AdminRoute>
-              <AdminLayout />
+              <ErrorBoundary>
+                <AdminLayout />
+              </ErrorBoundary>
             </AdminRoute>
           }
         >

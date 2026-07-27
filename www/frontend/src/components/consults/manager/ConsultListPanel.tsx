@@ -122,7 +122,7 @@ export default function ConsultListPanel({
 
   const { data, isLoading, isError, error, refetch } = useConsults(filters);
 
-  const rawConsults = data?.data ?? [];
+  const rawConsults = Array.isArray(data?.data) ? data.data : [];
   const allConsults = useMemo(
     () => clientSort(clientFilter(rawConsults, filters), filters.sort),
     [rawConsults, filters],
