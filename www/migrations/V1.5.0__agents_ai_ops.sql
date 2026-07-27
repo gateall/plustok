@@ -186,7 +186,7 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   COMMENT='보안 감사 로그';
 
--- CRM 브릿지 (06_CRM/01 §5.3 — SSOT 14개 외 보조 테이블) --------------------
+-- CRM customer_bridge (06_CRM/01 SSOT auxiliary table)
 CREATE TABLE IF NOT EXISTS customer_bridge (
     acep_customer_id    VARCHAR(36) NOT NULL,
     legacy_customer_id  BIGINT      NOT NULL,

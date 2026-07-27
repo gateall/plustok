@@ -3,8 +3,9 @@ declare(strict_types=1);
 
 return [
     'host'    => getenv('ACEP_TEST_DB_HOST') ?: '127.0.0.1',
-    'name'    => getenv('ACEP_TEST_DB_NAME') ?: 'acep_test',
-    'user'    => getenv('ACEP_TEST_DB_USER') ?: 'root',
+    'port'    => (int) (getenv('ACEP_TEST_DB_PORT') ?: '3307'),
+    'name'    => getenv('ACEP_TEST_DB_NAME') ?: 'plustok_contract_test',
+    'user'    => getenv('ACEP_TEST_DB_USER') ?: 'plustok_test',
     'pass'    => getenv('ACEP_TEST_DB_PASS') ?: '',
     'charset' => 'utf8mb4',
 ];

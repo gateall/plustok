@@ -31,3 +31,10 @@ www/data/pdata/
 Thumbs.db
 .DS_Store
 *.swp
+
+# PHPUnit / Docker test DB (local credentials)
+.env.test
+db/mariadb-portable/
+db/mariadb-data/
+
+www/config/acep.local.php

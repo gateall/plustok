@@ -8,6 +8,7 @@ namespace Tests\Feature;
 
 
 
+use ConsultSchema;
 use Tests\Support\ApiTestCase;
 
 
@@ -71,6 +72,7 @@ final class ConsultChatTest extends ApiTestCase
         $pdo = $this->ensureSchema();
 
         require_once dirname(__DIR__, 2) . '/includes/util/CrmSchema.php';
+        require_once dirname(__DIR__, 2) . '/includes/util/ConsultSchema.php';
 
 
 
@@ -120,7 +122,7 @@ final class ConsultChatTest extends ApiTestCase
 
             ':cid'    => $legacyCustomerId,
 
-            ':status' => 'new',
+            ':status' => \ConsultSchema::initialStatus($pdo),
 
         ]);
 
@@ -278,7 +280,7 @@ final class ConsultChatTest extends ApiTestCase
 
         $this->assertFalse($forbidden->isSuccess());
 
-        $this->assertSame(403, $forbidden->httpCode);
+        $this->assertSame(403, $forbidden->http);
 
     }
 
@@ -293,6 +295,7 @@ final class ConsultChatTest extends ApiTestCase
         $pdo = $this->ensureSchema();
 
         require_once dirname(__DIR__, 2) . '/includes/util/CrmSchema.php';
+        require_once dirname(__DIR__, 2) . '/includes/util/ConsultSchema.php';
 
         require_once dirname(__DIR__, 2) . '/includes/consult_chat.php';
 
@@ -403,6 +406,7 @@ final class ConsultChatTest extends ApiTestCase
         $pdo = $this->ensureSchema();
 
         require_once dirname(__DIR__, 2) . '/includes/util/CrmSchema.php';
+        require_once dirname(__DIR__, 2) . '/includes/util/ConsultSchema.php';
 
 
 
@@ -442,7 +446,7 @@ final class ConsultChatTest extends ApiTestCase
 
             ':cid'    => $legacyCustomerId,
 
-            ':status' => 'new',
+            ':status' => \ConsultSchema::initialStatus($pdo),
 
         ]);
 

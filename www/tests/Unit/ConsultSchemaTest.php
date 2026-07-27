@@ -33,10 +33,7 @@ final class ConsultSchemaTest extends TestCase
              NOT NULL DEFAULT 'consulting'"
         );
 
-        $ref = new \ReflectionClass(ConsultSchema::class);
-        $cache = $ref->getProperty('statusEnumCache');
-        $cache->setAccessible(true);
-        $cache->setValue(null, null);
+        ConsultSchema::resetStatusEnumCache();
 
         $this->assertSame('consulting', ConsultSchema::initialStatus($pdo));
     }

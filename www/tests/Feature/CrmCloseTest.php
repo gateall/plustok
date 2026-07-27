@@ -14,13 +14,16 @@ final class CrmCloseTest extends ApiTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $pdo = $this->ensureSchema();
-        $this->seedChatFixtures($pdo);
+        $this->seedChatFixtures(\db());
     }
 
     private function seedChatFixtures(\PDO $pdo): void
     {
         require_once dirname(__DIR__, 2) . '/includes/util/PiiEncryptor.php';
+        $pdo->prepare('DELETE FROM chat_messages WHERE room_id = :rid')->execute([':rid' => $this->roomId]);
+        $pdo->prepare('DELETE FROM chat_rooms WHERE id = :id')->execute([':id' => $this->roomId]);
+        $pdo->prepare('DELETE FROM customers WHERE id = :id')->execute([':id' => $this->customerId]);
+        $pdo->prepare('DELETE FROM agents WHERE id = :id')->execute([':id' => $this->agentId]);
         $hash = password_hash('Agent123!', PASSWORD_BCRYPT, ['cost' => 4]);
         $pdo->prepare(
             'INSERT INTO agents (id, login_id, password_hash, name, role, status)
@@ -54,7 +57,7 @@ final class CrmCloseTest extends ApiTestCase
             ':sub' => '5G 결합',
         ]);
 
-        $base = strtotime('-6 minutes');
+        $base = strtotime('-15 minutes');
         for ($i = 0; $i < 4; $i++) {
             $msgId = sprintf('55555555-5555-4555-8555-%012d', $i);
             $senderType = $i % 2 === 0 ? 'customer' : 'agent';
@@ -68,7 +71,7 @@ final class CrmCloseTest extends ApiTestCase
                 ':st' => $senderType,
                 ':sid' => $senderId,
                 ':content' => "테스트 메시지 {$i}",
-                ':ts' => $base + ($i * 90),
+                ':ts' => $base + ($i * 120),
             ]);
         }
     }
@@ -97,16 +100,19 @@ final class CrmCloseTest extends ApiTestCase
         $this->assertNotEmpty($data['scheduleIds']);
         $this->assertGreaterThanOrEqual(250, $data['ai']['summaryLength']);
 
-        $pdo = $this->ensureSchema();
-        $room = $pdo->query("SELECT crm_save_status FROM chat_rooms WHERE id = '{$this->roomId}'")->fetch();
+        $pdo = $this->freshPdo();
+        $st = $pdo->prepare('SELECT crm_save_status, legacy_consult_id FROM chat_rooms WHERE id = :id');
+        $st->execute([':id' => $this->roomId]);
+        $room = $st->fetch();
         $this->assertSame('saved', $room['crm_save_status']);
+        $this->assertEquals($data['consultId'], $room['legacy_consult_id'], 'legacy_consult_id should match consultId and not be null or 0');
     }
 
     public function test_admin_stats_overview_requires_admin_role(): void
     {
         $agentRes = $this->api('GET', '/admin/stats/overview', null, $this->agentToken());
         $this->assertFalse($agentRes->isSuccess());
-        $this->assertSame(403, $agentRes->httpCode);
+        $this->assertSame(403, $agentRes->http);
 
         $adminRes = $this->api('GET', '/admin/stats/overview', null, $this->adminToken());
         $this->assertTrue($adminRes->isSuccess());
