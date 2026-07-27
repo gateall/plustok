@@ -9,7 +9,6 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import ChatScreen from './pages/ChatScreen';
 import AdminDashboardPage from './pages/AdminDashboardPage';
-import AdminPlaceholderPage from './pages/AdminPlaceholderPage';
 import ConsultManagerPage from './components/consults/manager/ConsultManagerPage';
 import AdminMorePage from './pages/AdminMorePage';
 import NotFoundPage from './pages/NotFoundPage';
@@ -18,6 +17,10 @@ import AdminContractsPage from './pages/AdminContractsPage';
 import ContractDetailPage from './pages/ContractDetailPage';
 import ContractCreatePage from './pages/ContractCreatePage';
 import AdminSitesPage from './pages/AdminSitesPage';
+import AdminProductsPage from './pages/AdminProductsPage';
+import AdminStatsPage from './pages/AdminStatsPage';
+import AdminUsersPage from './pages/AdminUsersPage';
+import AdminSettingsPage from './pages/AdminSettingsPage';
 
 export default function App() {
   return (
@@ -53,16 +56,10 @@ export default function App() {
         <Route path="contracts/new" element={<ContractCreatePage />} />
         <Route path="contracts/:id" element={<ContractDetailPage />} />
         <Route path="sites" element={<AdminSitesPage />} />
-        <Route
-          path="stats"
-          element={
-            <AdminPlaceholderPage
-              title="통계"
-              description="상세 통계 차트는 Phase 3 이후 제공됩니다."
-              phase="Phase 3"
-            />
-          }
-        />
+        <Route path="products" element={<AdminProductsPage />} />
+        <Route path="stats" element={<AdminStatsPage />} />
+        <Route path="users" element={<AdminUsersPage />} />
+        <Route path="settings" element={<AdminSettingsPage />} />
         <Route path="more" element={<AdminMorePage />} />
       </Route>
       <Route path="*" element={<NotFoundPage />} />

@@ -38,9 +38,9 @@ export const SIDEBAR_NAV: AdminNavItem[] = [
   { id: 'contracts', label: '계약', icon: ScrollText, to: '/admin/contracts', adminOnly: true },
   { id: 'sites', label: '사이트', icon: Globe, to: '/admin/sites', adminOnly: true },
   { id: 'products', label: '상품', icon: Package, to: '/admin/products', adminOnly: true },
-  { id: 'users', label: '사용자', icon: UserCog, externalHref: '/admin/users/', adminOnly: true },
+  { id: 'users', label: '사용자', icon: UserCog, to: '/admin/users', adminOnly: true },
   { id: 'stats', label: '통계', icon: BarChart3, to: '/admin/stats' },
-  { id: 'settings', label: '설정', icon: Settings, externalHref: '/admin/settings/', adminOnly: true },
+  { id: 'settings', label: '설정', icon: Settings, to: '/admin/settings', adminOnly: true },
 ];
 
 /** Bottom nav primary tabs (mobile/tablet) */
@@ -61,7 +61,7 @@ export const MORE_NAV: AdminNavItem[] = [
   { id: 'files', label: '파일', icon: FileText, externalHref: '/admin/files/', adminOnly: true },
   { id: 'contracts', label: '계약관리', icon: ScrollText, to: '/admin/contracts', adminOnly: true },
   { id: 'notifications', label: '알림', icon: Bell, to: '/admin/more' },
-  { id: 'settings', label: '설정', icon: Settings, externalHref: '/admin/settings/', adminOnly: true },
+  { id: 'settings', label: '설정', icon: Settings, to: '/admin/settings', adminOnly: true },
 ];
 
 export function filterNavByRole(items: AdminNavItem[], role: string | undefined): AdminNavItem[] {
@@ -80,5 +80,6 @@ export const ROUTE_LABELS: Record<string, string> = {
   more: '더보기',
   sites: '사이트',
   products: '상품',
+  users: '사용자',
   settings: '설정',
 };
