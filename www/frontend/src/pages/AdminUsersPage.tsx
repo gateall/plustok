@@ -30,7 +30,7 @@ export default function AdminUsersPage() {
     }
   };
 
-  const agents = data?.data ?? [];
+  const agents = Array.isArray(data?.data) ? data.data : [];
 
   return (
     <div className="min-w-0 py-4 md:py-6">

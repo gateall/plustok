@@ -51,9 +51,10 @@ export default function ConsultListPage() {
   const filters = useMemo(() => parseFilters(searchParams), [searchParams]);
   const { data, isLoading, isError, error, refetch } = useConsults(filters);
 
+  const rawConsults = Array.isArray(data?.data) ? data.data : [];
   const consults = useMemo(
-    () => clientFilter(data?.data ?? [], filters),
-    [data?.data, filters],
+    () => clientFilter(rawConsults, filters),
+    [rawConsults, filters],
   );
 
   const meta = data?.meta;

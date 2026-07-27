@@ -25,7 +25,7 @@ export default function AdminCustomersPage() {
   const filters = useMemo(() => parseCustomerFilters(searchParams), [searchParams]);
   const { data, isLoading, isError, error, refetch } = useCustomers(filters);
 
-  const customers = data?.items ?? [];
+  const customers = Array.isArray(data?.items) ? data.items : [];
   const total = data?.total ?? 0;
   const page = data?.page ?? filters.page ?? 1;
   const limit = data?.limit ?? filters.limit ?? 20;

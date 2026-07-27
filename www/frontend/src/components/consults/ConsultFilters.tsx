@@ -108,7 +108,8 @@ export default function ConsultFilters({ variant = 'page', siteOptions = [] }: C
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
   const filters = parseFilters(searchParams);
-  const { data: agents = [] } = useAgents();
+  const { data: agentsRaw } = useAgents();
+  const agents = Array.isArray(agentsRaw) ? agentsRaw : [];
   const [qDraft, setQDraft] = useState(filters.q ?? '');
   const [tagDraft, setTagDraft] = useState(filters.tag ?? '');
 

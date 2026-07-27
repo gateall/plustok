@@ -28,7 +28,7 @@ export default function AdminContractsPage() {
   const filters = useMemo(() => parseContractFilters(searchParams), [searchParams]);
   const { data, isLoading, isError, error, refetch } = useContracts(filters);
 
-  const rawItems = data?.items ?? [];
+  const rawItems = Array.isArray(data?.items) ? data.items : [];
   const contracts = useMemo(
     () => filterByPaymentStatus(rawItems, filters.payment_status),
     [rawItems, filters.payment_status],

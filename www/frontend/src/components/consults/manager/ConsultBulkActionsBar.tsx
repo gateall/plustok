@@ -28,7 +28,8 @@ export default function ConsultBulkActionsBar({
   onClear,
   busy = false,
 }: ConsultBulkActionsBarProps) {
-  const { data: agents = [] } = useAgents();
+  const { data: agentsRaw } = useAgents();
+  const agents = Array.isArray(agentsRaw) ? agentsRaw : [];
   const [modal, setModal] = useState<BulkModalKind>(null);
   const [statusDraft, setStatusDraft] = useState('progress');
   const [assigneeDraft, setAssigneeDraft] = useState('');
