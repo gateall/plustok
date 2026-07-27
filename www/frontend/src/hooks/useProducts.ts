@@ -14,12 +14,21 @@ export function useProducts(filters: ProductListFilters) {
   });
 }
 
+export function useProduct(id: number | undefined) {
+  return useQuery({
+    queryKey: ['admin', 'products', id],
+    queryFn: () => productService.get(id!),
+    enabled: id != null && id > 0,
+  });
+}
+
 export function useProductCreate() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (payload: ProductCreatePayload) => productService.create(payload),
-    onSuccess: () => {
+    onSuccess: (created) => {
       void qc.invalidateQueries({ queryKey: ['admin', 'products'] });
+      void qc.invalidateQueries({ queryKey: ['admin', 'products', created.id] });
     },
   });
 }
@@ -29,8 +38,9 @@ export function useProductUpdate() {
   return useMutation({
     mutationFn: ({ id, payload }: { id: number; payload: ProductUpdatePayload }) =>
       productService.update(id, payload),
-    onSuccess: () => {
+    onSuccess: (_data, { id }) => {
       void qc.invalidateQueries({ queryKey: ['admin', 'products'] });
+      void qc.invalidateQueries({ queryKey: ['admin', 'products', id] });
     },
   });
 }

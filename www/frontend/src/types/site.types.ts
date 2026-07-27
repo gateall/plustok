@@ -34,3 +34,54 @@ export type SiteListFilters = {
 export type SiteListResponse = {
   data: SiteItem[];
 };
+
+export type SiteCreatePayload = {
+  siteCode: string;
+  siteName: string;
+  domain?: string;
+  brand: string;
+  division?: string;
+  persona?: string | null;
+  status?: boolean;
+};
+
+export type SiteUpdatePayload = SiteCreatePayload;
+
+export type SiteCreateResponse = {
+  id: number;
+  apiKey: string;
+  message: string;
+};
+
+export type SiteRegenKeyResponse = {
+  id: number;
+  apiKey: string;
+  message: string;
+};
+
+export type SiteToggleResponse = {
+  id: number;
+  status: boolean;
+};
+
+export type SiteDeleteResponse = {
+  deleted: boolean;
+  id: number;
+};
+
+export type SiteStats = {
+  id: number;
+  todayConsultCount: number;
+  totalConsultCount: number;
+  lastConsultedAt: string | null;
+  lastCommunicationAt: string | null;
+};
+
+export type SiteHealthHistoryResponse = {
+  data: SiteHealthCheck[];
+};
+
+/** Site detail combines item fields with optional stats */
+export type SiteDetail = SiteItem & {
+  stats?: SiteStats;
+};

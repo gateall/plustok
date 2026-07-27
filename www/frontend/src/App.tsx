@@ -21,7 +21,11 @@ import AdminContractsPage from './pages/AdminContractsPage';
 import ContractDetailPage from './pages/ContractDetailPage';
 import ContractCreatePage from './pages/ContractCreatePage';
 import AdminSitesPage from './pages/AdminSitesPage';
+import SiteFormPage from './pages/SiteFormPage';
+import SiteDetailPage from './pages/SiteDetailPage';
 import AdminProductsPage from './pages/AdminProductsPage';
+import ProductCreatePage from './pages/ProductCreatePage';
+import ProductEditPage from './pages/ProductEditPage';
 import AdminStatsPage from './pages/AdminStatsPage';
 import AdminUsersPage from './pages/AdminUsersPage';
 import AdminSettingsPage from './pages/AdminSettingsPage';
@@ -70,7 +74,12 @@ export default function App() {
           <Route path="contracts/new" element={<ContractCreatePage />} />
           <Route path="contracts/:id" element={<ContractDetailPage />} />
           <Route path="sites" element={<AdminSitesPage />} />
+          <Route path="sites/new" element={<SiteFormPage />} />
+          <Route path="sites/:id" element={<SiteDetailPage />} />
+          <Route path="sites/:id/edit" element={<SiteFormPage />} />
           <Route path="products" element={<AdminProductsPage />} />
+          <Route path="products/new" element={<ProductCreatePage />} />
+          <Route path="products/:id/edit" element={<ProductEditPage />} />
           <Route path="stats" element={<AdminStatsPage />} />
           <Route path="users" element={<AdminUsersPage />} />
           <Route path="settings" element={<AdminSettingsPage />} />
