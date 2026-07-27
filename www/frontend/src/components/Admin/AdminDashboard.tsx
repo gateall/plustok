@@ -149,25 +149,17 @@ export function RealtimeSection() {
 
 
   return (
-
-    <SectionShell title="실시간 현황">
-
-      <div className="grid min-w-0 grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
-
-        <KpiCard label="오늘 신규" value={newToday} />
-
-        <KpiCard label="답변 대기" value={waitingReply} />
-
-        <KpiCard label="진행 중" value={inProgress} />
-
-        <KpiCard label="오늘 완료" value={closedToday} />
-
+    <SectionShell title="핵심 지표 (Realtime)">
+      <div className="grid min-w-0 grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6 md:gap-4">
+        <KpiCard label="전체 상담" value={overview.data?.kpis.activeChats.value ?? 0} metric={overview.data?.kpis.activeChats} />
+        <KpiCard label="진행 중 상담" value={inProgress} />
+        <KpiCard label="신규 고객" value="-" />
+        <KpiCard label="계약 수" value="-" />
+        <KpiCard label="계약 금액" value="-" />
+        <KpiCard label="미수금" value="-" />
       </div>
-
     </SectionShell>
-
   );
-
 }
 
 
@@ -586,33 +578,66 @@ export function LiveMonitorSection() {
 
 
 
-export default function AdminDashboard() {
+export function RecentActivitySection() {
+  const monitor = useAdminMonitor();
+  const rooms = monitor.data?.rooms ?? [];
+  const recentRooms = rooms.slice(0, 5);
 
   return (
+    <div className="grid min-w-0 gap-6 lg:grid-cols-3">
+      <SectionShell title="최근 상담">
+        {monitor.isLoading ? (
+          <p className="text-sm text-slate-500">로딩 중…</p>
+        ) : recentRooms.length > 0 ? (
+          <ul className="divide-y divide-slate-100 text-sm">
+            {recentRooms.map((r) => (
+              <li key={r.id} className="flex items-center justify-between py-2">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium">{r.customerNameMasked}</p>
+                  <p className="text-xs text-slate-500 truncate">{r.lastMessagePreview || '내용 없음'}</p>
+                </div>
+                <span className="shrink-0 text-xs text-slate-400">{r.status}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-slate-400">최근 상담이 없습니다.</p>
+        )}
+      </SectionShell>
+      
+      <SectionShell title="최근 고객">
+        <div className="flex h-full items-center justify-center p-4">
+          <EmptyState title="API 미지원" description="최근 고객 목록을 불러올 수 없습니다." />
+        </div>
+      </SectionShell>
 
+      <SectionShell title="최근 계약">
+        <div className="flex h-full items-center justify-center p-4">
+          <EmptyState title="API 미지원" description="최근 계약 목록을 불러올 수 없습니다." />
+        </div>
+      </SectionShell>
+    </div>
+  );
+}
+
+export default function AdminDashboard() {
+  return (
     <div className="min-w-0 space-y-6">
-
       <RealtimeSection />
-
-      <TodayTasksSection />
+      
+      <RecentActivitySection />
 
       <div className="grid min-w-0 gap-6 lg:grid-cols-2">
-
         <AgentSection />
-
         <AiPerformanceSection />
-
       </div>
 
       <CustomerAnalysisSection />
-
+      
       <HourlyTrendsSection />
-
+      
       <LiveMonitorSection />
-
     </div>
-
   );
-
 }
 
