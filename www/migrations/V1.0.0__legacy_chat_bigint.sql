@@ -9,7 +9,7 @@ SET foreign_key_checks = 0;
 -- 1. chat_rooms -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS chat_rooms (
     id                  VARCHAR(36)      NOT NULL,
-    customer_id         BIGINT UNSIGNED  NOT NULL COMMENT 'legacy customers.id',
+    customer_id         BIGINT           NOT NULL COMMENT 'legacy customers.id',
     agent_id            VARCHAR(36)      NULL,
     inquiry_type        VARCHAR(50)      NOT NULL,
     status              ENUM('new','active','closed') NOT NULL DEFAULT 'new',

@@ -32,6 +32,10 @@ trait WithDatabase
         if (!self::$schemaReady || self::$schemaProfile !== $profile) {
             if (self::$schemaProfile !== '' && self::$schemaProfile !== $profile) {
                 $this->resetSchemaForProfileSwitch($pdo);
+            } elseif ($profile === 'acep'
+                && acep_table_exists($pdo, 'customers')
+                && !acep_column_exists($pdo, 'customers', 'phone_hash')) {
+                $this->resetSchemaForProfileSwitch($pdo);
             }
             $this->runMigrations($pdo, $profile);
             self::$schemaReady = true;
@@ -39,6 +43,12 @@ trait WithDatabase
         }
         \db_reset();
         $pdo = \db();
+        if ($profile === 'acep' && !acep_table_exists($pdo, 'agents')) {
+            self::$schemaReady = false;
+            self::$schemaProfile = 'legacy';
+
+            return $this->ensureSchema();
+        }
         $this->truncateTables($pdo, $profile);
         return $pdo;
     }
@@ -67,10 +77,11 @@ trait WithDatabase
         $pdo->exec('SET foreign_key_checks = 0');
         foreach ([
             'contract_payments', 'contracts',
+            'agent_notifications',
             'ai_failover_log', 'ai_logs', 'ai_recommendations', 'chat_read_status',
             'chat_messages', 'chat_room_assignments', 'attachments', 'chat_rooms',
             'customer_bridge', 'consult_history', 'consults', 'crm_customers', 'customers',
-            'sites', 'products', 'schedules_dedup_guard', 'schedules',
+            'sites', 'products', 'schedules_dedup_guard', 'schedules', 'agents', 'audit_logs',
         ] as $table) {
             if (acep_table_exists($pdo, $table)) {
                 $pdo->exec('DROP TABLE `' . $table . '`');
@@ -82,12 +93,14 @@ trait WithDatabase
     protected function runMigrations(PDO $pdo, string $profile): void
     {
         $dir = dirname(__DIR__, 2) . '/migrations';
-        if ($profile === 'acep'
-            && acep_table_exists($pdo, 'customers')
-            && !acep_column_exists($pdo, 'customers', 'phone_hash')) {
-            $this->resetSchemaForProfileSwitch($pdo);
-        }
-        if ($profile === 'legacy'
+        if ($profile === 'acep') {
+            $needsAcepRebuild = !acep_table_exists($pdo, 'agents')
+                || !acep_table_exists($pdo, 'chat_rooms')
+                || (acep_table_exists($pdo, 'customers') && !acep_column_exists($pdo, 'customers', 'phone_hash'));
+            if ($needsAcepRebuild) {
+                $this->resetSchemaForProfileSwitch($pdo);
+            }
+        } elseif ($profile === 'legacy'
             && acep_table_exists($pdo, 'customers')
             && !acep_column_exists($pdo, 'customers', 'customer_no')) {
             $this->resetSchemaForProfileSwitch($pdo);
@@ -95,9 +108,6 @@ trait WithDatabase
         $files = $profile === 'legacy'
             ? [
                 'legacy_crm_bootstrap.sql',
-                'V1.0.0__legacy_chat_bigint.sql',
-                'V1.5.0__agents_ai_ops.sql',
-                'V1.5.3__phase1_v15_tables.sql',
             ]
             : [
                 'V1.0.0__mvp_core.sql',
