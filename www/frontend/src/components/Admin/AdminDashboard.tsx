@@ -114,7 +114,7 @@ export function RealtimeSection() {
 
   const monitor = useAdminMonitor();
 
-  const agents = useAdminAgents();
+
 
 
 
@@ -138,13 +138,7 @@ export function RealtimeSection() {
 
   const rooms = monitor.data?.rooms ?? [];
 
-  const newToday = rooms.filter((r) => r.status === 'new').length;
-
-  const waitingReply = rooms.filter((r) => r.status === 'new' && !r.agent).length;
-
   const inProgress = rooms.filter((r) => r.status === 'active').length;
-
-  const closedToday = (agents.data?.agents ?? []).reduce((sum, a) => sum + a.closedToday, 0);
 
 
 
