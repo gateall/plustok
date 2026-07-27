@@ -454,6 +454,7 @@ function acep_route_admin(string $method, string $uri, array $c): void
     $adminFailoverSvc = $c['adminFailoverSvc'];
     $settingsSvc = $c['settingsSvc'];
     $siteController = $c['siteController'];
+    $productController = $c['productController'];
     $audit = $c['audit'];
     $pdo = $c['pdo'];
     $uuid = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
@@ -462,6 +463,9 @@ function acep_route_admin(string $method, string $uri, array $c): void
     $adminWriteRoles = ['admin'];
 
     if ($siteController->route($method, $uri)) {
+        return;
+    }
+    if ($productController->route($method, $uri)) {
         return;
     }
 
