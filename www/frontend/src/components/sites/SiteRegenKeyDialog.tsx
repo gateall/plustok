@@ -23,9 +23,11 @@ export default function SiteRegenKeyDialog({
       description={
         site ? (
           <>
-            <strong>{site.siteName}</strong>의 API Key를 재발급할까요?
+            API 키를 재발급하면 기존 연동이 중단될 수 있습니다.
             <br />
-            기존 Key는 즉시 무효화됩니다. 새 Key는 한 번만 표시됩니다.
+            계속하시겠습니까?
+            <br />
+            <strong>{site.siteName}</strong> ({site.siteCode})
           </>
         ) : null
       }

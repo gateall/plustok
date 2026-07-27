@@ -7,13 +7,21 @@ import LoadingSkeleton from '@/components/common/LoadingSkeleton';
 import EmptyState from '@/components/common/EmptyState';
 import { AdminErrorState, Button } from '@/components/admin-ui';
 import SiteFilters, { parseSiteFilters } from '@/components/sites/SiteFilters';
+import SiteStatCards from '@/components/sites/SiteStatCards';
 import SiteMobileList from '@/components/sites/SiteMobileList';
 import SiteTable from '@/components/sites/SiteTable';
-import SiteDeleteDialog from '@/components/sites/SiteDeleteDialog';
 import SiteRegenKeyDialog from '@/components/sites/SiteRegenKeyDialog';
-import { useSites, useSiteToggle, useSiteDelete, useSiteRegenKey } from '@/hooks/useSites';
+import SiteToggleDialog from '@/components/sites/SiteToggleDialog';
+import { useSites, useSiteToggle, useSiteRegenKey } from '@/hooks/useSites';
+import { normalizeSiteList } from '@/services/site.service';
 import { adminErrorFromUnknown } from '@/utils/adminErrorState';
-import type { SiteItem } from '@/types/site.types';
+import {
+  computeSiteSummary,
+  filterSitesByIntegration,
+  hasActiveSiteFilters,
+  sortSites,
+} from '@/utils/siteDisplay';
+import type { SiteIntegrationFilter, SiteItem } from '@/types/site.types';
 
 const PAGE_SIZE = 20;
 
@@ -27,27 +35,49 @@ function SiteListSkeleton() {
   );
 }
 
-/** Sites admin — full CRUD via React routes */
+/** Sites admin — legacy-aligned list (Mobile First 769px split) */
 export default function AdminSitesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const filters = useMemo(() => parseSiteFilters(searchParams), [searchParams]);
-  const { data, isLoading, isError, error, refetch } = useSites(filters);
+  const apiFilters = useMemo(
+    () => ({
+      ...(filters.q ? { q: filters.q } : {}),
+    }),
+    [filters.q],
+  );
+
+  const { data, isLoading, isError, error, refetch } = useSites(apiFilters);
 
   const toggleMutation = useSiteToggle();
-  const deleteMutation = useSiteDelete();
   const regenMutation = useSiteRegenKey();
 
-  const [deletingSite, setDeletingSite] = useState<SiteItem | null>(null);
+  const [toggleSite, setToggleSite] = useState<SiteItem | null>(null);
   const [regenSite, setRegenSite] = useState<SiteItem | null>(null);
   const [newApiKey, setNewApiKey] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<number | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
-  const allSites = Array.isArray(data?.data) ? data.data : [];
-  const total = allSites.length;
+  const allFromApi = normalizeSiteList(data);
+  const summary = useMemo(() => computeSiteSummary(allFromApi), [allFromApi]);
+  const filteredSites = useMemo(
+    () => filterSitesByIntegration(allFromApi, filters.integration),
+    [allFromApi, filters.integration],
+  );
+  const sortedSites = useMemo(
+    () => sortSites(filteredSites, filters.sort),
+    [filteredSites, filters.sort],
+  );
 
+  const total = allFromApi.length;
   const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10) || 1);
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const sites = allSites.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(sortedSites.length / PAGE_SIZE));
+  const sites = sortedSites.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  const integrationFilter = (filters.integration ?? '') as SiteIntegrationFilter;
+  const filtersActive = hasActiveSiteFilters({
+    q: filters.q,
+    integration: filters.integration,
+  });
 
   const goPage = (nextPage: number) => {
     const params = new URLSearchParams(searchParams);
@@ -56,26 +86,48 @@ export default function AdminSitesPage() {
     setSearchParams(params, { replace: true });
   };
 
-  const handleToggle = async (site: SiteItem) => {
-    setTogglingId(site.id);
+  const handleIntegrationSelect = (integration: SiteIntegrationFilter) => {
+    const params = new URLSearchParams(searchParams);
+    params.delete('page');
+    if (integration) params.set('integration', integration);
+    else params.delete('integration');
+    setSearchParams(params, { replace: true });
+  };
+
+  const handleToggleSelect = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleToggleSelectAll = (ids: number[]) => {
+    setSelectedIds((prev) => {
+      const allSelected = ids.length > 0 && ids.every((id) => prev.has(id));
+      if (allSelected) {
+        const next = new Set(prev);
+        ids.forEach((id) => next.delete(id));
+        return next;
+      }
+      return new Set([...prev, ...ids]);
+    });
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const handleToggleConfirm = async () => {
+    if (!toggleSite) return;
+    setTogglingId(toggleSite.id);
     try {
-      await toggleMutation.mutateAsync(site.id);
+      await toggleMutation.mutateAsync(toggleSite.id);
       toast.success('상태가 변경되었습니다.');
+      setToggleSite(null);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : '상태 변경에 실패했습니다.');
     } finally {
       setTogglingId(null);
-    }
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!deletingSite) return;
-    try {
-      await deleteMutation.mutateAsync(deletingSite.id);
-      toast.success('사이트가 삭제되었습니다.');
-      setDeletingSite(null);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : '삭제에 실패했습니다.');
     }
   };
 
@@ -92,20 +144,22 @@ export default function AdminSitesPage() {
   };
 
   const listActions = {
-    onToggle: (site: SiteItem) => void handleToggle(site),
+    onToggle: setToggleSite,
     onRegenKey: setRegenSite,
-    onDelete: setDeletingSite,
+    selectedIds,
+    onToggleSelect: handleToggleSelect,
+    onToggleSelectAll: handleToggleSelectAll,
     togglingId,
   };
 
   return (
-    <div className="admin-page-shell min-w-0 w-full py-4 md:py-6 px-4 md:px-8">
+    <div className="admin-page-shell min-w-0 w-full bg-[var(--pt-color-bg-subtle,#f8fafc)] py-4 md:py-6 px-4 md:px-8">
       <PageHeader
-        title="사이트 관리"
-        description={`등록 사이트 ${total}개${totalPages > 1 ? ` (페이지 ${page}/${totalPages})` : ''}`}
+        title={`사이트관리 (${total.toLocaleString('ko-KR')})`}
+        description="등록된 사이트와 API 연동 상태를 관리합니다."
         actions={
           <Button variant="primary" to="/admin/sites/new" className="admin-touch-target">
-            새 사이트 등록
+            + 사이트 추가
           </Button>
         }
       />
@@ -116,34 +170,76 @@ export default function AdminSitesPage() {
           <code className="block break-all rounded-lg bg-white p-3 text-xs font-mono text-slate-800">
             {newApiKey}
           </code>
-          <button
-            type="button"
-            onClick={() => setNewApiKey(null)}
-            className="mt-2 text-xs text-amber-700 underline"
-          >
-            닫기
-          </button>
+          <div className="mt-2 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => void navigator.clipboard.writeText(newApiKey)}
+              className="text-xs font-medium text-amber-800 underline"
+            >
+              복사
+            </button>
+            <button
+              type="button"
+              onClick={() => setNewApiKey(null)}
+              className="text-xs text-amber-700 underline"
+            >
+              닫기
+            </button>
+          </div>
         </div>
       )}
 
-      <SiteFilters />
+      {!isLoading && !isError && (
+        <SiteStatCards
+          summary={summary}
+          selected={integrationFilter}
+          onSelect={handleIntegrationSelect}
+        />
+      )}
+
+      <SiteFilters onResetSelection={clearSelection} />
 
       {isLoading && <SiteListSkeleton />}
 
       {isError && (
         <AdminErrorState
           {...adminErrorFromUnknown(error, 'list')}
+          title="사이트 목록을 불러오지 못했습니다."
           onRetry={() => void refetch()}
         />
       )}
 
-      {!isLoading && !isError && allSites.length === 0 && (
+      {!isLoading && !isError && allFromApi.length === 0 && !filtersActive && (
         <EmptyState
-          title="등록된 사이트가 없습니다"
-          description="새 사이트를 등록하거나 검색 조건을 변경해 주세요."
+          title="등록된 사이트가 없습니다."
+          description="새 사이트를 등록해 주세요."
           action={
             <Button variant="primary" to="/admin/sites/new" className="admin-touch-target">
-              새 사이트 등록
+              사이트 추가
+            </Button>
+          }
+        />
+      )}
+
+      {!isLoading && !isError && sortedSites.length === 0 && (allFromApi.length > 0 || filtersActive) && (
+        <EmptyState
+          title="검색 조건에 맞는 사이트가 없습니다."
+          description="다른 검색어나 필터를 사용해 보세요."
+          action={
+            <Button
+              variant="secondary"
+              onClick={() => {
+                const params = new URLSearchParams(searchParams);
+                params.delete('q');
+                params.delete('integration');
+                params.delete('sort');
+                params.delete('page');
+                setSearchParams(params, { replace: true });
+                clearSelection();
+              }}
+              className="admin-touch-target"
+            >
+              조건 초기화
             </Button>
           }
         />
@@ -183,12 +279,12 @@ export default function AdminSitesPage() {
         </>
       )}
 
-      <SiteDeleteDialog
-        open={deletingSite != null}
-        site={deletingSite}
-        loading={deleteMutation.isPending}
-        onConfirm={() => void handleDeleteConfirm()}
-        onClose={() => setDeletingSite(null)}
+      <SiteToggleDialog
+        open={toggleSite != null}
+        site={toggleSite}
+        loading={toggleMutation.isPending}
+        onConfirm={() => void handleToggleConfirm()}
+        onClose={() => setToggleSite(null)}
       />
 
       <SiteRegenKeyDialog

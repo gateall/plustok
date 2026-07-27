@@ -8,6 +8,7 @@ import { AuthProvider } from './features/auth/AuthProvider';
 import './index.css';
 import './styles/landing-desktop.css';
 import './styles/admin-common.css';
+import './styles/admin-sites.css';
 import './styles/admin-contracts.css';
 import './styles/consult-manager.css';
 import './styles/admin-consults.css';

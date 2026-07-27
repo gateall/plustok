@@ -23,6 +23,11 @@ describe('site.service', () => {
       expect(normalizeSiteList(response)).toEqual([sampleSite]);
     });
 
+    it('returns items array when present', () => {
+      const response = { items: [sampleSite] };
+      expect(normalizeSiteList(response)).toEqual([sampleSite]);
+    });
+
     it('returns empty array when data is undefined', () => {
       expect(normalizeSiteList(undefined)).toEqual([]);
     });
@@ -30,18 +35,27 @@ describe('site.service', () => {
     it('returns empty array when data is not an array', () => {
       expect(normalizeSiteList({ data: null as unknown as SiteItem[] })).toEqual([]);
       expect(normalizeSiteList({ data: 'invalid' as unknown as SiteItem[] })).toEqual([]);
+      expect(normalizeSiteList({ items: {} as unknown as SiteItem[] })).toEqual([]);
     });
   });
 });
 
 describe('Array.isArray guard pattern', () => {
   it('guards sites list from malformed API response', () => {
-    const data = { data: [{ id: 1 }] };
-    const sites = Array.isArray(data?.data) ? data.data : [];
+    const data: { data?: unknown; items?: unknown } = { data: [{ id: 1 }] };
+    const sites = Array.isArray(data?.data)
+      ? data.data
+      : Array.isArray(data?.items)
+        ? data.items
+        : [];
     expect(sites).toHaveLength(1);
 
-    const bad = { data: null };
-    const empty = Array.isArray(bad?.data) ? bad.data : [];
+    const bad: { data?: unknown; items?: unknown } = { data: null };
+    const empty = Array.isArray(bad?.data)
+      ? bad.data
+      : Array.isArray(bad?.items)
+        ? bad.items
+        : [];
     expect(empty).toEqual([]);
   });
 });

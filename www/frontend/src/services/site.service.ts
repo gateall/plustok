@@ -69,6 +69,10 @@ export const siteService = {
 };
 
 /** Guard helper — ensures sites list is always an array */
-export function normalizeSiteList(data: SiteListResponse | undefined): SiteItem[] {
-  return Array.isArray(data?.data) ? data.data : [];
+export function normalizeSiteList(data: SiteListResponse | unknown | undefined): SiteItem[] {
+  if (data == null || typeof data !== 'object') return [];
+  const envelope = data as Record<string, unknown>;
+  if (Array.isArray(envelope.items)) return envelope.items as SiteItem[];
+  if (Array.isArray(envelope.data)) return envelope.data as SiteItem[];
+  return [];
 }

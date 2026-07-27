@@ -1,0 +1,64 @@
+/**
+ * Admin Sites — legacy-aligned layout (Mobile First, 769px table split).
+ */
+
+.admin-sites-filters {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+@media (min-width: 769px) {
+  .admin-sites-filters {
+    grid-template-columns: minmax(0, 1fr) auto auto auto auto;
+    align-items: center;
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-sites-filters__row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+
+  .admin-sites-filters__actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+}
+
+.admin-sites-table-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.25rem;
+}
+
+.admin-sites-table-actions .admin-touch-target {
+  min-height: 2rem;
+  padding-inline: 0.5rem;
+  font-size: 0.75rem;
+}
+
+.admin-sites-mobile-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+@media (min-width: 480px) {
+  .admin-sites-mobile-actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.admin-sites-mobile-actions .admin-touch-target {
+  width: 100%;
+  min-height: 44px;
+}
+
+.admin-sites-stats .admin-kpi-card {
+  height: 100%;
+}

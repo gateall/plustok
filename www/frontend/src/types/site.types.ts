@@ -21,13 +21,27 @@ export type SiteItem = {
   lastHealthCheck: SiteHealthCheck | null;
   todayConsultCount?: number;
   totalConsultCount?: number;
+  lastConsultedAt?: string | null;
 };
+
+export type SiteIntegrationFilter = '' | 'healthy' | 'needs_check' | 'inactive';
+
+export type SiteSortKey = 'name' | 'created' | 'consult' | 'last_consult';
 
 export type SiteListFilters = {
   q?: string;
   status?: string;
   brand?: string;
   division?: string;
+  integration?: SiteIntegrationFilter;
+  sort?: SiteSortKey;
+};
+
+export type SiteListSummary = {
+  total: number;
+  healthy: number;
+  needsCheck: number;
+  inactive: number;
 };
 
 /** GET /admin/sites — acep envelope data shape */
