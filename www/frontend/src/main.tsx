@@ -6,6 +6,7 @@ import { Toaster } from 'react-hot-toast';
 import App from './App';
 import { AuthProvider } from './features/auth/AuthProvider';
 import './index.css';
+import './styles/landing-desktop.css';
 import './styles/admin-common.css';
 import './styles/admin-contracts.css';
 import './styles/consult-manager.css';

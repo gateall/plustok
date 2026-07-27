@@ -1,0 +1,14 @@
+export { default as LandingHeader } from './LandingHeader';
+export { default as LandingHero } from './LandingHero';
+export { default as LandingServices } from './LandingServices';
+export { default as LandingWhy } from './LandingWhy';
+export { default as LandingPlatform } from './LandingPlatform';
+export { default as LandingAi } from './LandingAi';
+export { default as LandingCrmFeatures } from './LandingCrmFeatures';
+export { default as LandingProcess } from './LandingProcess';
+export { default as LandingDashboardPreview } from './LandingDashboardPreview';
+export { default as LandingStats } from './LandingStats';
+export { default as LandingAiCompare } from './LandingAiCompare';
+export { default as LandingTrustLogos } from './LandingTrustLogos';
+export { default as LandingCta } from './LandingCta';
+export { default as LandingFooter } from './LandingFooter';
