@@ -31,7 +31,7 @@ function renderCard(consult: ConsultListItem = sampleConsult) {
 describe('ConsultCard', () => {
   it('renders status badge, customer, site, and action buttons', () => {
     renderCard();
-    expect(screen.getByText('진행중')).toBeInTheDocument();
+    expect(screen.getByText('상담중')).toBeInTheDocument();
     expect(screen.getByText(/김\*\*/)).toBeInTheDocument();
     expect(screen.getByText(/LG15441644/)).toBeInTheDocument();
     expect(screen.getByText('전화')).toBeInTheDocument();

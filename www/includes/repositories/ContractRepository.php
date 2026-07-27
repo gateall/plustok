@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../util/Uuid.php';
+require_once __DIR__ . '/../../migrations/lib.php';
 
 final class ContractRepository
 {
@@ -28,6 +29,10 @@ final class ContractRepository
      */
     public function paginateForAdmin(array $filters): array
     {
+        if (!$this->contractsTableReady()) {
+            return ['items' => [], 'total' => 0];
+        }
+
         [$where, $params] = $this->buildWhere($filters);
         $sortColumn = self::SORT_MAP[$filters['sort']] ?? self::SORT_MAP['created_at'];
         $order = strtoupper((string)($filters['order'] ?? 'desc')) === 'ASC' ? 'ASC' : 'DESC';
@@ -65,6 +70,10 @@ final class ContractRepository
 
     public function findByIdForAdmin(string $id): ?array
     {
+        if (!$this->contractsTableReady()) {
+            return null;
+        }
+
         $customerJoin = $this->customerJoinSql();
         $st = $this->pdo->prepare(
             "SELECT c.*, {$this->customerSelectSql()}
@@ -223,7 +232,7 @@ final class ContractRepository
      */
     private function paymentTotalsByContract(array $ids): array
     {
-        if ($ids === []) {
+        if ($ids === [] || !acep_table_exists($this->pdo, 'contract_payments')) {
             return [];
         }
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
@@ -293,6 +302,12 @@ final class ContractRepository
         }
 
         return [implode(' AND ', $where), $params];
+    }
+
+    private function contractsTableReady(): bool
+    {
+        return acep_table_exists($this->pdo, 'contracts')
+            && acep_column_exists($this->pdo, 'contracts', 'deleted_at');
     }
 
     private function customerJoinSql(): string

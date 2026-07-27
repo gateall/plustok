@@ -1,0 +1,62 @@
+/**
+ * Shared admin Mobile First layout — 769px card/table split.
+ * One dataset, two render paths; no duplicate API calls.
+ */
+
+.admin-mobile-list {
+  display: block;
+  min-width: 0;
+}
+
+.admin-desktop-table {
+  display: none;
+  min-width: 0;
+}
+
+@media (min-width: 769px) {
+  .admin-mobile-list {
+    display: none !important;
+  }
+
+  .admin-desktop-table {
+    display: block !important;
+  }
+}
+
+/* Legacy admin-pc-* aliases used by AdminPcListPage */
+.admin-pc-mobile-cards {
+  display: block;
+  min-width: 0;
+}
+
+.admin-pc-table-wrap.admin-pc-table {
+  display: none;
+  min-width: 0;
+}
+
+@media (min-width: 769px) {
+  .admin-pc-mobile-cards {
+    display: none !important;
+  }
+
+  .admin-pc-table-wrap.admin-pc-table {
+    display: block !important;
+  }
+}
+
+.admin-page-shell {
+  min-width: 0;
+  max-width: 1440px;
+  margin-inline: auto;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .admin-page-shell {
+    padding-inline: 1rem;
+  }
+
+  .admin-touch-target {
+    min-height: 44px;
+  }
+}

@@ -1,0 +1,65 @@
+/* admin-contracts.css — Mobile-first contracts admin (360px → 1024px+) */
+
+.admin-contracts-page {
+  min-width: 0;
+}
+
+/* Summary cards — 2-col mobile, 4-col desktop */
+.admin-contracts-summary {
+  min-width: 0;
+}
+
+@media (min-width: 360px) {
+  .admin-contract-card {
+    min-height: 0;
+  }
+}
+
+@media (min-width: 640px) {
+  .admin-contracts-filters .grid {
+    gap: 0.75rem;
+  }
+}
+
+/* Breakpoint aligned with admin-common.css (769px) */
+.admin-contracts-mobile.admin-mobile-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.admin-contracts-table.admin-desktop-table {
+  display: none;
+}
+
+@media (min-width: 769px) {
+  .admin-contracts-table.admin-desktop-table {
+    display: block;
+  }
+
+  .admin-contracts-summary {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .admin-contracts-summary {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.admin-contract-detail dl {
+  margin: 0;
+}
+
+.admin-contract-create input,
+.admin-contract-create textarea {
+  min-width: 0;
+}
+
+/* Touch-friendly pagination on mobile */
+@media (max-width: 639px) {
+  .admin-contracts-page nav button {
+    min-height: 44px;
+  }
+}

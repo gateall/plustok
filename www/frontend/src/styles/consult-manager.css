@@ -1,0 +1,104 @@
+/**
+ * Consult Manager RC1 — 3-panel layout (list 25% | detail 50% | AI 25%)
+ * Mobile First: single panel + drawers
+ */
+
+.consult-manager-page {
+  --cm-date-gap: 24px;
+}
+
+.consult-date-groups > section + section {
+  margin-top: 24px;
+}
+
+.consult-date-header {
+  margin-bottom: 8px;
+}
+
+.consult-list-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.consult-list-panel__body {
+  -webkit-overflow-scrolling: touch;
+}
+
+.consult-manager-grid {
+  min-height: min( calc(100dvh - 7rem), 900px );
+}
+
+@media (min-width: 1024px) {
+  .consult-manager-grid {
+    min-height: calc(100dvh - 5.5rem);
+  }
+
+  .app-main--consult-manager {
+    max-width: none !important;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+}
+
+.consult-detail-panel {
+  min-height: 0;
+}
+
+.consult-ai-panel {
+  min-height: 0;
+}
+
+.consult-checkbox {
+  accent-color: rgb(79 70 229);
+}
+
+.consult-dropzone:focus-within {
+  border-color: rgb(129 140 248);
+  background: rgb(238 242 255);
+}
+
+.consult-timeline-item:last-child {
+  padding-bottom: 0;
+}
+
+.consult-timeline-section + .consult-timeline-section {
+  padding-top: 0.5rem;
+  border-top: 1px solid rgb(226 232 240);
+}
+
+.consult-dropzone {
+  cursor: pointer;
+}
+
+.consult-bulk-bar {
+  animation: consult-bulk-in 200ms ease-out;
+}
+
+@keyframes consult-bulk-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* AI drawer — open from right on mobile */
+.consult-ai-drawer-panel {
+  left: auto !important;
+  right: 0;
+}
+
+@media (max-width: 1023px) {
+  .consult-manager-page .floating-action {
+    bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .app-main--consult-detail .consult-manager-page .floating-action {
+    bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  }
+}

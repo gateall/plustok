@@ -24,10 +24,22 @@ export function getAccessToken(): string | null {
   return accessToken;
 }
 
+export class ApiFetchError extends Error {
+  readonly status: number;
+  readonly code?: string;
+
+  constructor(message: string, status: number, code?: string) {
+    super(message);
+    this.name = 'ApiFetchError';
+    this.status = status;
+    this.code = code;
+  }
+}
+
 async function parseResponse<T>(res: Response): Promise<T> {
   const json = (await res.json()) as { success: boolean; data: T; error?: { code: string; message: string } };
   if (!res.ok || !json.success) {
-    throw new Error(json.error?.message ?? `HTTP ${res.status}`);
+    throw new ApiFetchError(json.error?.message ?? `HTTP ${res.status}`, res.status, json.error?.code);
   }
   return json.data;
 }

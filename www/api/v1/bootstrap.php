@@ -29,6 +29,7 @@ function acep_bootstrap(bool $forceReload = false): array
     require_once __DIR__ . '/../../includes/repositories/CustomerRepository.php';
     require_once __DIR__ . '/../../includes/repositories/ContractRepository.php';
     require_once __DIR__ . '/../../includes/services/AdminContractService.php';
+    require_once __DIR__ . '/../../includes/services/AdminCustomerService.php';
     require_once __DIR__ . '/../../includes/repositories/AuditLogRepository.php';
     require_once __DIR__ . '/../../includes/repositories/ChatRoomRepository.php';
     require_once __DIR__ . '/../../includes/repositories/ChatMessageRepository.php';
@@ -66,6 +67,7 @@ function acep_bootstrap(bool $forceReload = false): array
     $audit = new AuditService(new AuditLogRepository($pdo));
     $auth = new AuthService($agents, $audit);
     $adminContractSvc = new AdminContractService(new ContractRepository($pdo), $audit, $pdo);
+    $adminCustomerSvc = new AdminCustomerService($customers);
     $customerSvc = new CustomerService($customers, $audit);
     $agentSvc = new AgentService($agents, $audit);
     $dashboardSvc = new DashboardService($pdo);
@@ -148,7 +150,7 @@ function acep_bootstrap(bool $forceReload = false): array
         'aiRouter', 'messageSvc', 'aiSvc', 'fileSvc',
         'notificationSvc', 'settingsSvc', 'searchSvc', 'dashboardSvc', 'siteSvc', 'siteController',
         'crmCloseSvc', 'adminStatsSvc', 'adminAgentSvc', 'adminMonitorSvc', 'adminConsultSvc',
-        'adminPromptSvc', 'adminFailoverSvc', 'adminContractSvc',
+        'adminPromptSvc', 'adminFailoverSvc', 'adminContractSvc', 'adminCustomerSvc',
     );
 
     return $container;

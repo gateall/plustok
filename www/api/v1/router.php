@@ -449,6 +449,7 @@ function acep_route_admin(string $method, string $uri, array $c): void
     $adminAgentSvc = $c['adminAgentSvc'];
     $adminMonitorSvc = $c['adminMonitorSvc'];
     $adminConsultSvc = $c['adminConsultSvc'];
+    $adminCustomerSvc = $c['adminCustomerSvc'];
     $adminPromptSvc = $c['adminPromptSvc'];
     $adminFailoverSvc = $c['adminFailoverSvc'];
     $settingsSvc = $c['settingsSvc'];
@@ -500,6 +501,11 @@ function acep_route_admin(string $method, string $uri, array $c): void
     if ($method === 'GET' && $uri === '/admin/activity-feed') {
         JwtMiddleware::requireRole($readRoles);
         acep_success($adminConsultSvc->activityFeed($_GET));
+    }
+    // 정적 목록 Route를 동적 /admin/customers/{id} Route보다 먼저 등록한다.
+    if ($method === 'GET' && $uri === '/admin/customers') {
+        JwtMiddleware::requireRole($readRoles);
+        acep_success($adminCustomerSvc->list($_GET));
     }
     if ($method === 'GET' && preg_match('#^/admin/customers/([^/]+)$#', $uri, $m)) {
         JwtMiddleware::requireRole($readRoles);

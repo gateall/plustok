@@ -1,0 +1,142 @@
+/**
+ * Admin consults PC list — wide table, date groups, sticky header
+ */
+
+.admin-consults-page {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+}
+
+@media (min-width: 1024px) {
+  .admin-consults-page {
+    max-width: 1520px;
+    margin-inline: auto;
+  }
+
+  .app-main--consult-manager .admin-consults-page {
+    padding-inline: 0;
+  }
+}
+
+.consult-pc-table .consult-table-scroll {
+  overflow-x: visible;
+}
+
+.consult-table .consult-row {
+  min-height: 68px;
+}
+
+.consult-table-header {
+  position: sticky;
+  top: var(--admin-header-height, 3.5rem);
+  z-index: 10;
+}
+
+.consult-table-header th {
+  background: rgb(248 250 252);
+  box-shadow: 0 1px 0 rgb(226 232 240);
+}
+
+.consult-row--new {
+  background: rgb(238 242 255 / 0.35);
+}
+
+.consult-row--new:hover {
+  background: rgb(238 242 255 / 0.55);
+}
+
+.consult-preview-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.consult-preview-body {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.consult-number {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
+.consult-date-group + .consult-date-group {
+  margin-top: 1.75rem;
+}
+
+.consult-list-panel--full .consult-list-panel__body {
+  padding-inline: 0.5rem;
+}
+
+@media (min-width: 1024px) {
+  .consult-list-panel--full .consult-list-panel__header {
+    padding-inline: 1rem;
+  }
+
+  .consult-list-panel--full .consult-list-panel__body {
+    padding-inline: 1rem;
+  }
+
+  .consult-manager-page--list-only {
+    min-height: calc(100dvh - 5rem);
+  }
+
+  .consult-manager-page--list-only .consult-list-panel {
+    border-radius: 0.75rem;
+    border: 1px solid rgb(226 232 240);
+    background: white;
+  }
+}
+
+.consult-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.consult-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 9999px;
+  background: rgb(238 242 255);
+  padding: 0.25rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: rgb(67 56 202);
+}
+
+.consult-filter-chip button {
+  line-height: 1;
+  padding: 0 0.125rem;
+  color: rgb(99 102 241);
+}
+
+.consult-filter-chip button:hover {
+  color: rgb(49 46 129);
+}
+
+.consult-quick-date-btn {
+  height: 2.25rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgb(226 232 240);
+  background: white;
+  padding-inline: 0.75rem;
+  font-size: 0.8125rem;
+  color: rgb(71 85 105);
+  white-space: nowrap;
+}
+
+.consult-quick-date-btn:hover {
+  background: rgb(248 250 252);
+}
+
+.consult-quick-date-btn--active {
+  border-color: rgb(129 140 248);
+  background: rgb(238 242 255);
+  color: rgb(67 56 202);
+  font-weight: 600;
+}

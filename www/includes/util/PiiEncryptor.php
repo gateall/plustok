@@ -67,13 +67,15 @@ final class PiiEncryptor
 
     public static function maskEmail(string $email): string
     {
+        $email = trim($email);
         $parts = explode('@', $email, 2);
-        if (count($parts) !== 2) {
-            return '****';
+        if (count($parts) !== 2 || $parts[0] === '' || $parts[1] === '') {
+            return '보호된 정보';
         }
         $local = $parts[0];
-        $shown = strlen($local) > 2 ? substr($local, 0, 2) : $local;
-        return $shown . '@****.' . (explode('.', $parts[1])[1] ?? 'com');
+        $domain = $parts[1];
+
+        return substr($local, 0, 1) . '***@' . $domain;
     }
 
     public static function maskAddress(string $address): string
