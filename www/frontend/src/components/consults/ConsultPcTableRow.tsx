@@ -117,7 +117,7 @@ export default function ConsultPcTableRow({
           ) : null}
         </div>
       </td>
-      <td className="consult-row__cell hidden px-2 py-3 min-[1024px]:table-cell">
+      <td className="consult-row__cell hidden px-2 py-3 min-[769px]:table-cell">
         <span className="text-sm text-slate-700">{consult.agent?.displayName ?? '미배정'}</span>
       </td>
       <td className="consult-row__cell hidden px-2 py-3 min-[1280px]:table-cell">

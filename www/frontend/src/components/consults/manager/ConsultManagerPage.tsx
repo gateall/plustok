@@ -11,8 +11,8 @@ import { useConsultDetail } from '@/hooks/useConsultDetail';
 export default function ConsultManagerPage() {
   const { id: selectedId } = useParams<{ id?: string }>();
   const navigate = useNavigate();
-  const isDesktop = useIsDesktop(992);
-  const isPcWide = useMediaQuery('(min-width: 1024px)');
+  const isDesktop = useIsDesktop();
+  const isPcWide = useMediaQuery('(min-width: 769px)');
   const [listDrawerOpen, setListDrawerOpen] = useState(false);
   const [customerDrawerOpen, setCustomerDrawerOpen] = useState(false);
   const listTriggerRef = useRef<HTMLButtonElement>(null);
@@ -41,11 +41,11 @@ export default function ConsultManagerPage() {
   }
 
   return (
-    <div className="consult-manager-page flex min-h-[calc(100dvh-8rem)] min-w-0 flex-col min-[992px]:min-h-[calc(100dvh-4rem)]">
-      <div className="consult-manager-grid flex min-h-0 flex-1 overflow-hidden rounded-none border-0 bg-slate-100 min-[992px]:rounded-xl min-[992px]:border min-[992px]:border-slate-200">
+    <div className="consult-manager-page flex min-h-[calc(100dvh-8rem)] min-w-0 flex-col min-[769px]:min-h-[calc(100dvh-4rem)]">
+      <div className="consult-manager-grid flex min-h-0 flex-1 overflow-hidden rounded-none border-0 bg-slate-100 min-[769px]:rounded-xl min-[769px]:border min-[769px]:border-slate-200">
         <aside
-          className={`consult-manager-list w-full shrink-0 border-r border-slate-200 bg-white min-[992px]:w-1/4 ${
-            showListOnMobile ? 'flex min-h-0 flex-col' : 'hidden min-[992px]:flex min-[992px]:min-h-0 min-[992px]:flex-col'
+          className={`consult-manager-list w-full shrink-0 border-r border-slate-200 bg-white min-[769px]:w-1/4 ${
+            showListOnMobile ? 'flex min-h-0 flex-col' : 'hidden min-[769px]:flex min-[769px]:min-h-0 min-[769px]:flex-col'
           }`}
         >
           <ConsultListPanel
@@ -57,8 +57,8 @@ export default function ConsultManagerPage() {
         </aside>
 
         <section
-          className={`consult-manager-detail min-w-0 flex-1 min-[992px]:w-1/2 ${
-            showDetailOnMobile ? 'flex min-h-0 flex-col' : 'hidden min-[992px]:flex min-[992px]:min-h-0 min-[992px]:flex-col'
+          className={`consult-manager-detail min-w-0 flex-1 min-[769px]:w-1/2 ${
+            showDetailOnMobile ? 'flex min-h-0 flex-col' : 'hidden min-[769px]:flex min-[769px]:min-h-0 min-[769px]:flex-col'
           }`}
         >
           <ConsultDetailPanel
@@ -72,7 +72,7 @@ export default function ConsultManagerPage() {
           />
         </section>
 
-        <aside className="consult-manager-customer hidden w-1/4 shrink-0 border-l border-slate-200 min-[992px]:flex min-[992px]:min-h-0 min-[992px]:flex-col">
+        <aside className="consult-manager-customer hidden w-1/4 shrink-0 border-l border-slate-200 min-[769px]:flex min-[769px]:min-h-0 min-[769px]:flex-col">
           <ConsultCustomerSidePanel consult={consult ?? null} className="min-h-0 flex-1" />
         </aside>
       </div>

@@ -158,7 +158,7 @@ export default function ConsultListRow({
 
             <div
 
-              className="hidden items-center gap-0.5 min-[992px]:group-hover:flex min-[992px]:group-focus-within:flex"
+              className="hidden items-center gap-0.5 min-[769px]:group-hover:flex min-[769px]:group-focus-within:flex"
 
               onClick={(e) => e.stopPropagation()}
 

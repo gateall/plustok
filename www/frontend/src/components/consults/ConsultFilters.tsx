@@ -177,7 +177,7 @@ export default function ConsultFilters({ variant = 'page', siteOptions = [] }: C
   const quickActive = activeQuickDate(filters);
 
   const quickDateButtons = (
-    <div className="hidden flex-wrap gap-1.5 min-[1024px]:flex">
+    <div className="hidden flex-wrap gap-1.5 min-[769px]:flex">
       {(
         [
           ['today', '오늘'],
@@ -218,7 +218,7 @@ export default function ConsultFilters({ variant = 'page', siteOptions = [] }: C
         <select
           value={filters.site ?? ''}
           onChange={(e) => handleSiteChange(e.target.value)}
-          className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 min-[1024px]:max-w-[10rem]"
+          className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 min-[769px]:max-w-[10rem]"
           aria-label="사이트 필터"
         >
           <option value="">전체 사이트</option>
@@ -236,7 +236,7 @@ export default function ConsultFilters({ variant = 'page', siteOptions = [] }: C
           applyParams({ ...filters, tag: tag || undefined, page: 1 });
         }}
         showSearch={false}
-        className="w-full min-[992px]:max-w-[10rem]"
+        className="w-full min-[769px]:max-w-[10rem]"
       />
     </>
   );
@@ -285,7 +285,7 @@ export default function ConsultFilters({ variant = 'page', siteOptions = [] }: C
 
   return (
     <div className={`admin-filters min-w-0 ${variant === 'page' ? 'mb-4 space-y-3' : 'space-y-2'}`}>
-      <div className="flex min-w-0 flex-col gap-2 min-[1024px]:flex-row min-[1024px]:flex-wrap min-[1024px]:items-center">
+      <div className="flex min-w-0 flex-col gap-2 min-[769px]:flex-row min-[769px]:flex-wrap min-[769px]:items-center">
         <SearchBox
           ref={searchRef}
           value={qDraft}
@@ -293,22 +293,22 @@ export default function ConsultFilters({ variant = 'page', siteOptions = [] }: C
           onSubmit={() => applyParams({ ...filters, q: qDraft.trim(), page: 1 })}
           placeholder="상담번호, 고객명, 연락처, 문의내용 검색"
           label="상담 검색"
-          className="min-w-0 flex-1 min-[1024px]:min-w-[20rem] min-[1024px]:max-w-[30rem]"
+          className="min-w-0 flex-1 min-[769px]:min-w-[20rem] min-[769px]:max-w-[30rem]"
         />
         <button
           type="button"
           onClick={() => applyParams({ ...filters, q: qDraft.trim(), page: 1 })}
-          className="hidden h-11 shrink-0 rounded-lg bg-indigo-600 px-4 text-sm font-medium text-white transition-colors hover:bg-indigo-700 min-[1024px]:inline-flex min-[1024px]:items-center"
+          className="hidden h-11 shrink-0 rounded-lg bg-indigo-600 px-4 text-sm font-medium text-white transition-colors hover:bg-indigo-700 min-[769px]:inline-flex min-[769px]:items-center"
         >
           검색
         </button>
-        <div className="hidden min-[1024px]:flex min-[1024px]:flex-wrap min-[1024px]:items-center min-[1024px]:gap-2">
+        <div className="hidden min-[769px]:flex min-[769px]:flex-wrap min-[769px]:items-center min-[769px]:gap-2">
           {selectControls}
         </div>
         <button
           type="button"
           onClick={() => setMobileDrawerOpen(true)}
-          className="relative inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-50 min-[1024px]:hidden"
+          className="relative inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-50 min-[769px]:hidden"
           aria-label="필터"
         >
           <Filter className="h-5 w-5" />
@@ -322,11 +322,11 @@ export default function ConsultFilters({ variant = 'page', siteOptions = [] }: C
 
       {quickDateButtons}
 
-      <div className="hidden min-w-0 flex-wrap items-center gap-2 min-[1024px]:flex">{extraFilters}</div>
+      <div className="hidden min-w-0 flex-wrap items-center gap-2 min-[769px]:flex">{extraFilters}</div>
 
-      <div className="flex min-w-0 flex-wrap items-center gap-2 min-[1024px]:hidden">{selectControls}</div>
+      <div className="flex min-w-0 flex-wrap items-center gap-2 min-[769px]:hidden">{selectControls}</div>
 
-      <Drawer open={mobileDrawerOpen} title="필터" onClose={() => setMobileDrawerOpen(false)} className="min-[1024px]:hidden">
+      <Drawer open={mobileDrawerOpen} title="필터" onClose={() => setMobileDrawerOpen(false)} className="min-[769px]:hidden">
         <div className="space-y-3 p-1">
           <div className="flex flex-wrap gap-2">
             {(

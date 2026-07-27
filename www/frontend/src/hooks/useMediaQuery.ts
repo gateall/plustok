@@ -18,7 +18,13 @@ export function useMediaQuery(query: string): boolean {
   return matches;
 }
 
-/** PM spec — tablet/desktop breakpoint at 992px. */
-export function useIsDesktop(breakpoint = 992): boolean {
+/** PM spec — admin PC layout breakpoint (card/table, consult list). */
+export const ADMIN_PC_BREAKPOINT_PX = 769;
+
+export function useIsDesktop(breakpoint = ADMIN_PC_BREAKPOINT_PX): boolean {
   return useMediaQuery(`(min-width: ${breakpoint}px)`);
+}
+
+export function useIsAdminPc(): boolean {
+  return useMediaQuery(`(min-width: ${ADMIN_PC_BREAKPOINT_PX}px)`);
 }

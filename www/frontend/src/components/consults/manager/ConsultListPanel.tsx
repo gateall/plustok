@@ -117,7 +117,7 @@ export default function ConsultListPanel({
 }: ConsultListPanelProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const filters = useMemo(() => parseFilters(searchParams), [searchParams]);
-  const isPcTable = useMediaQuery('(min-width: 1024px)');
+  const isPcTable = useMediaQuery('(min-width: 769px)');
   const useWideTable = layoutMode === 'full' && isPcTable;
 
   const { data, isLoading, isError, error, refetch } = useConsults(filters);
@@ -271,10 +271,10 @@ export default function ConsultListPanel({
         layoutMode === 'full' && 'consult-list-panel--full',
       )}
     >
-      <div className="consult-list-panel__header shrink-0 border-b border-slate-200 bg-white px-3 py-3 min-[1024px]:px-4">
+      <div className="consult-list-panel__header shrink-0 border-b border-slate-200 bg-white px-3 py-3 min-[769px]:px-4">
         {layoutMode === 'full' ? (
-          <div className="mb-3 min-[1024px]:mb-4">
-            <h1 className="text-lg font-bold text-slate-900 min-[1024px]:text-xl">상담 관리</h1>
+          <div className="mb-3 min-[769px]:mb-4">
+            <h1 className="text-lg font-bold text-slate-900 min-[769px]:text-xl">상담 관리</h1>
             <p className="mt-0.5 text-sm text-slate-500">고객 문의와 처리 상태를 한 화면에서 관리합니다.</p>
           </div>
         ) : (
@@ -285,7 +285,7 @@ export default function ConsultListPanel({
         )}
 
         {layoutMode === 'full' && !isLoading && !isError ? (
-          <div className="mb-3 min-[1024px]:mb-4">
+          <div className="mb-3 min-[769px]:mb-4">
             <ConsultSummaryCards stats={summaryStats} />
           </div>
         ) : null}
@@ -294,7 +294,7 @@ export default function ConsultListPanel({
         <ConsultFilterChips filters={filters} onClearAll={clearAllFilters} />
 
         {!useWideTable && consults.length > 0 ? (
-          <label className="mt-2 flex min-h-10 items-center gap-2 text-sm text-slate-700 min-[992px]:mt-3">
+          <label className="mt-2 flex min-h-10 items-center gap-2 text-sm text-slate-700 min-[769px]:mt-3">
             <input
               type="checkbox"
               className="consult-checkbox h-5 w-5 rounded border-slate-300 text-indigo-600"
@@ -317,7 +317,7 @@ export default function ConsultListPanel({
         onClear={() => setSelectedKeys(new Set())}
       />
 
-      <div className="consult-list-panel__body min-h-0 flex-1 overflow-y-auto px-2 py-2 min-[1024px]:px-3">
+      <div className="consult-list-panel__body min-h-0 flex-1 overflow-y-auto px-2 py-2 min-[769px]:px-3">
         {isLoading && (
           <div className="space-y-3 p-2" aria-label="상담 목록 로딩 중">
             <LoadingSkeleton className="h-8 w-48 rounded-lg" />

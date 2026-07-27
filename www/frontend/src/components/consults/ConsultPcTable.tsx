@@ -27,7 +27,7 @@ export default function ConsultPcTable({
     <div className="consult-pc-table min-w-0">
       {groups.map((group) => (
         <section key={group.key} className="consult-date-group mb-6 min-w-0" aria-label={group.label}>
-          <div className="consult-date-header mb-2 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-slate-100 px-3 py-2 min-[1024px]:px-4">
+          <div className="consult-date-header mb-2 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-slate-100 px-3 py-2 min-[769px]:px-4">
             <div className="flex flex-wrap items-baseline gap-2">
               <strong className="text-sm font-bold text-slate-900">{group.primary}</strong>
               {group.secondary && (group.primary === '오늘' || group.primary === '어제') ? (
@@ -75,7 +75,7 @@ export default function ConsultPcTable({
                   <th scope="col" className="px-2 py-2.5">
                     문의 내용
                   </th>
-                  <th scope="col" className="hidden w-[6.5rem] px-2 py-2.5 min-[1024px]:table-cell">
+                  <th scope="col" className="hidden w-[6.5rem] px-2 py-2.5 min-[769px]:table-cell">
                     담당
                   </th>
                   <th scope="col" className="hidden w-[5.5rem] px-2 py-2.5 min-[1280px]:table-cell">

@@ -8,7 +8,7 @@
   min-width: 0;
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 769px) {
   .admin-consults-page {
     max-width: 1520px;
     margin-inline: auto;
@@ -71,7 +71,7 @@
   padding-inline: 0.5rem;
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 769px) {
   .consult-list-panel--full .consult-list-panel__header {
     padding-inline: 1rem;
   }

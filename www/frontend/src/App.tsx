@@ -17,7 +17,7 @@ import AdminCustomersPage from './pages/AdminCustomersPage';
 import AdminContractsPage from './pages/AdminContractsPage';
 import ContractDetailPage from './pages/ContractDetailPage';
 import ContractCreatePage from './pages/ContractCreatePage';
-import AdminSitesBlockPage from './pages/AdminSitesBlockPage';
+import AdminSitesPage from './pages/AdminSitesPage';
 
 export default function App() {
   return (
@@ -52,7 +52,7 @@ export default function App() {
         <Route path="contracts" element={<AdminContractsPage />} />
         <Route path="contracts/new" element={<ContractCreatePage />} />
         <Route path="contracts/:id" element={<ContractDetailPage />} />
-        <Route path="sites" element={<AdminSitesBlockPage />} />
+        <Route path="sites" element={<AdminSitesPage />} />
         <Route
           path="stats"
           element={

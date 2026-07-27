@@ -111,7 +111,7 @@ export default function ConsultDetailPanel({
                   ref={aiTriggerRef}
                   type="button"
                   onClick={onOpenAi}
-                  className="inline-flex h-10 items-center gap-1 rounded-lg px-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50 min-[992px]:hidden"
+                  className="inline-flex h-10 items-center gap-1 rounded-lg px-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50 min-[769px]:hidden"
                 >
                   <UserRound className="h-4 w-4" />
                   {customerPanelLabel}

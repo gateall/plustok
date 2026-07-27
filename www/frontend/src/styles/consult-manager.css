@@ -30,7 +30,7 @@
   min-height: min( calc(100dvh - 7rem), 900px );
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 769px) {
   .consult-manager-grid {
     min-height: calc(100dvh - 5.5rem);
   }
@@ -93,7 +93,7 @@
   right: 0;
 }
 
-@media (max-width: 1023px) {
+@media (max-width: 768px) {
   .consult-manager-page .floating-action {
     bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
   }
