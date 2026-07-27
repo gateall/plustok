@@ -36,10 +36,10 @@ function renderDashboard() {
 describe('AdminDashboard', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('renders dashboard sections including today tasks', async () => {
+  it('renders dashboard sections including recent activity', async () => {
     renderDashboard();
-    expect(await screen.findByText('실시간 현황')).toBeInTheDocument();
-    expect(screen.getByText('오늘 할 일')).toBeInTheDocument();
+    expect(await screen.findByText('핵심 지표 (Realtime)')).toBeInTheDocument();
+    expect(screen.getByText('최근 상담')).toBeInTheDocument();
     expect(screen.getByText('상담원 현황')).toBeInTheDocument();
     expect(screen.getByText('AI 성과')).toBeInTheDocument();
     expect(screen.getByText('고객 분석')).toBeInTheDocument();
@@ -49,14 +49,14 @@ describe('AdminDashboard', () => {
 
   it('shows KPI labels in 2x2 grid (mobile-first)', async () => {
     renderDashboard();
-    expect(await screen.findByText('오늘 신규')).toBeInTheDocument();
-    expect(screen.getByText('답변 대기')).toBeInTheDocument();
-    expect(screen.getByText('진행 중')).toBeInTheDocument();
-    expect(screen.getByText('오늘 완료')).toBeInTheDocument();
+    expect(await screen.findByText('전체 상담')).toBeInTheDocument();
+    expect(screen.getByText('진행 중 상담')).toBeInTheDocument();
+    expect(screen.getByText('신규 고객')).toBeInTheDocument();
+    expect(screen.getByText('계약 수')).toBeInTheDocument();
   });
 
-  it('shows empty today tasks when no waiting rooms', async () => {
+  it('shows empty recent tasks when no rooms', async () => {
     renderDashboard();
-    expect(await screen.findByText('답변 대기 중인 상담이 없습니다.')).toBeInTheDocument();
+    expect(await screen.findByText('최근 상담이 없습니다.')).toBeInTheDocument();
   });
 });

@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import PageHeader from '../components/common/PageHeader';
 import {
   AiPerformanceSection,
@@ -8,7 +7,6 @@ import {
 import { useAdminOverview } from '../hooks/useAdminStats';
 
 export default function AdminStatsPage() {
-  const [period, setPeriod] = useState('month');
   const overview = useAdminOverview();
 
   return (
@@ -18,18 +16,6 @@ export default function AdminStatsPage() {
           title="통계 및 분석"
           description="기간별 전체 통계 데이터와 AI 분석 결과를 확인하세요."
         />
-        <div className="mt-4 sm:mt-0 flex shrink-0 items-center gap-2">
-          <select 
-            value={period}
-            onChange={(e) => setPeriod(e.target.value)}
-            className="rounded-lg border-slate-300 py-1.5 pl-3 pr-8 text-sm focus:border-sky-500 focus:ring-sky-500"
-          >
-            <option value="today">오늘</option>
-            <option value="week">최근 7일</option>
-            <option value="month">최근 30일</option>
-            <option value="year">올해</option>
-          </select>
-        </div>
       </div>
 
       <div className="grid min-w-0 gap-6">

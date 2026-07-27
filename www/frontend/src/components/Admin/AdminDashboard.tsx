@@ -158,66 +158,6 @@ export function RealtimeSection() {
 
 
 
-export function TodayTasksSection() {
-
-  const monitor = useAdminMonitor();
-
-  const waiting = (monitor.data?.rooms ?? []).filter((r) => r.status === 'new' && !r.agent);
-
-
-
-  return (
-
-    <SectionShell title="오늘 할 일">
-
-      {monitor.isLoading && <p className="text-sm text-slate-500">로딩 중…</p>}
-
-      {!monitor.isLoading && waiting.length === 0 && (
-
-        <p className="text-sm text-slate-500">답변 대기 중인 상담이 없습니다.</p>
-
-      )}
-
-      {!monitor.isLoading && waiting.length > 0 && (
-
-        <ul className="divide-y divide-slate-100 text-sm">
-
-          {waiting.slice(0, 5).map((r) => (
-
-            <li key={r.id} className="flex min-w-0 items-center justify-between gap-2 py-2.5">
-
-              <div className="min-w-0 flex-1">
-
-                <p className="truncate font-medium text-slate-900">{r.customerNameMasked}</p>
-
-                <p className="text-overflow-clamp-2 text-xs text-slate-500">
-
-                  {r.lastMessagePreview || '새 상담 대기'}
-
-                </p>
-
-              </div>
-
-              <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
-
-                답변 대기
-
-              </span>
-
-            </li>
-
-          ))}
-
-        </ul>
-
-      )}
-
-    </SectionShell>
-
-  );
-
-}
-
 
 
 export function AgentSection() {
