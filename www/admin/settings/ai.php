@@ -410,9 +410,17 @@ require INC_DIR . '/header.php';
 }
 </style>
 
-<h1 class="page">🤖 AI 멀티 프로바이더 & 다중 자동전환 설정 (V2.0)</h1>
+  <h1 class="page">🤖 AI 멀티 프로바이더 & 설정 자동 전환 설정 (V2.0)</h1>
+  
+  <div style="background:#eef2ff; border:1px solid #c7d2fe; color:#3730a3; padding:16px; border-radius:8px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center;">
+    <div>
+      <h2 style="margin:0 0 4px 0; font-size:16px;">✨ React 통합 관리자 이전 안내</h2>
+      <p style="margin:0; font-size:14px; color:#4338ca;">이 AI 설정 화면은 새로운 React 기반 관리자 페이지로 기능이 모두 이전되었습니다.</p>
+    </div>
+    <a href="/frontend/#/admin/settings" style="background:#4f46e5; color:#fff; padding:8px 16px; border-radius:6px; text-decoration:none; font-weight:600; font-size:14px;">새로운 관리자 설정으로 이동</a>
+  </div>
 
-<?php if ($msg): ?>
+  <?php if ($msg): ?>
 <div class="alert alert-<?= $msgType === 'success' ? 'ok' : 'err' ?>" style="margin-bottom:16px;padding:12px 16px;border-radius:8px;background:<?= $msgType === 'success' ? '#f0fff4' : '#fff5f5' ?>;border:1px solid <?= $msgType === 'success' ? '#c6f6d5' : '#fed7d7' ?>;color:<?= $msgType === 'success' ? '#276749' : '#c53030' ?>">
   <?= e($msg) ?>
 </div>

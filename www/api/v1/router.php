@@ -452,6 +452,7 @@ function acep_route_admin(string $method, string $uri, array $c): void
     $adminCustomerSvc = $c['adminCustomerSvc'];
     $adminPromptSvc = $c['adminPromptSvc'];
     $adminFailoverSvc = $c['adminFailoverSvc'];
+    $adminAiSettingsSvc = $c['adminAiSettingsSvc'] ?? null;
     $settingsSvc = $c['settingsSvc'];
     $siteController = $c['siteController'];
     $productController = $c['productController'];
@@ -651,6 +652,26 @@ function acep_route_admin(string $method, string $uri, array $c): void
     if ($method === 'PUT' && $uri === '/admin/settings') {
         $claims = JwtMiddleware::requireRole(['admin']);
         acep_success($settingsSvc->updateForAgent((string)$claims['sub'], acep_read_json()));
+    }
+
+    if ($method === 'GET' && $uri === '/admin/settings/ai' && $adminAiSettingsSvc) {
+        JwtMiddleware::requireRole(['admin']);
+        acep_success($adminAiSettingsSvc->getSettings());
+    }
+    if ($method === 'PUT' && $uri === '/admin/settings/ai' && $adminAiSettingsSvc) {
+        JwtMiddleware::requireRole(['admin']);
+        acep_success($adminAiSettingsSvc->updateSettings(acep_read_json()));
+    }
+    if ($method === 'POST' && $uri === '/admin/settings/ai/test' && $adminAiSettingsSvc) {
+        JwtMiddleware::requireRole(['admin']);
+        $body = acep_read_json();
+        $provider = (string)($body['provider'] ?? 'auto');
+        acep_success($adminAiSettingsSvc->testConnection($provider));
+    }
+    if ($method === 'DELETE' && preg_match('#^/admin/settings/ai/providers/([^/]+)/key$#', $uri, $m) && $adminAiSettingsSvc) {
+        JwtMiddleware::requireRole(['admin']);
+        $adminAiSettingsSvc->deleteKey(rawurldecode($m[1]));
+        acep_success(['deleted' => true]);
     }
 
     if ($method === 'GET' && $uri === '/admin/audit-logs') {

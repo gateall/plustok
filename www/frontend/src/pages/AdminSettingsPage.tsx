@@ -3,6 +3,7 @@ import PageHeader from '../components/common/PageHeader';
 import { useSettings, useSettingsUpdate } from '../hooks/useSettings';
 import type { UserSettings } from '../types/settings.types';
 import EmptyState from '../components/common/EmptyState';
+import AdminAiSettingsPanel from '../components/settings/AdminAiSettingsPanel';
 
 export default function AdminSettingsPage() {
   const { data, isLoading } = useSettings();
@@ -190,11 +191,8 @@ export default function AdminSettingsPage() {
                 />
               </div>
             ) : (
-              <div className="p-12">
-                <EmptyState 
-                  title="AI 연동 설정 (준비 중)" 
-                  description="프롬프트, 모델 파라미터 등 AI 설정 API는 현재 연동 준비 중입니다." 
-                />
+              <div className="bg-slate-50">
+                <AdminAiSettingsPanel />
               </div>
             )}
           </div>
