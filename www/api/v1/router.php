@@ -655,21 +655,21 @@ function acep_route_admin(string $method, string $uri, array $c): void
     }
 
     if ($method === 'GET' && $uri === '/admin/settings/ai' && $adminAiSettingsSvc) {
-        JwtMiddleware::requireRole(['admin']);
+        JwtMiddleware::requireRole(['admin', 'super']);
         acep_success($adminAiSettingsSvc->getSettings());
     }
     if ($method === 'PUT' && $uri === '/admin/settings/ai' && $adminAiSettingsSvc) {
-        JwtMiddleware::requireRole(['admin']);
+        JwtMiddleware::requireRole(['admin', 'super']);
         acep_success($adminAiSettingsSvc->updateSettings(acep_read_json()));
     }
     if ($method === 'POST' && $uri === '/admin/settings/ai/test' && $adminAiSettingsSvc) {
-        JwtMiddleware::requireRole(['admin']);
+        JwtMiddleware::requireRole(['admin', 'super']);
         $body = acep_read_json();
         $provider = (string)($body['provider'] ?? 'auto');
         acep_success($adminAiSettingsSvc->testConnection($provider));
     }
     if ($method === 'DELETE' && preg_match('#^/admin/settings/ai/providers/([^/]+)/key$#', $uri, $m) && $adminAiSettingsSvc) {
-        JwtMiddleware::requireRole(['admin']);
+        JwtMiddleware::requireRole(['admin', 'super']);
         $adminAiSettingsSvc->deleteKey(rawurldecode($m[1]));
         acep_success(['deleted' => true]);
     }

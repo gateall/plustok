@@ -98,17 +98,24 @@ class AdminAiSettingsService
         try {
             if ($provider === 'auto') {
                 $res = ai_call('System Test', 'Hello, this is a connection test. Reply with "OK".');
-                $providerUsed = $res['provider'] ?? 'unknown';
-                $latency = (int)((microtime(true) - $t0) * 1000);
-                return ['success' => true, 'provider' => $providerUsed, 'latencyMs' => $latency, 'message' => 'Connection successful'];
+                $providerUsed = $res['provider'] ?? $provider;
             } else {
-                $res = ai_call_single_provider($provider, 'System Test', 'Hello, this is a connection test. Reply with "OK".');
-                $latency = (int)((microtime(true) - $t0) * 1000);
-                return ['success' => true, 'provider' => $provider, 'latencyMs' => $latency, 'message' => 'Connection successful'];
+                $pCfg = ai_config_for_provider($provider);
+                if (empty($pCfg['api_key'])) {
+                    $latency = (int)((microtime(true) - $t0) * 1000);
+                    return ['success' => false, 'provider' => $provider, 'latencyMs' => $latency, 'error' => '저장된 API 키가 없습니다.'];
+                }
+                $res = ai_call_single_provider($provider, 'System Test', 'Hello, this is a connection test. Reply with "OK".', [], $pCfg);
+                $providerUsed = $provider;
             }
+            $latency = (int)((microtime(true) - $t0) * 1000);
+            if (empty($res['ok'])) {
+                return ['success' => false, 'provider' => $providerUsed, 'latencyMs' => $latency, 'error' => (string)($res['error'] ?? '연결 테스트에 실패했습니다.')];
+            }
+            return ['success' => true, 'provider' => $providerUsed, 'latencyMs' => $latency, 'message' => 'Connection successful'];
         } catch (Throwable $e) {
             $latency = (int)((microtime(true) - $t0) * 1000);
-            return ['success' => false, 'provider' => $provider, 'latencyMs' => $latency, 'error' => $e->getMessage()];
+            return ['success' => false, 'provider' => $provider, 'latencyMs' => $latency, 'error' => '연결 테스트 중 오류가 발생했습니다.'];
         }
     }
 
