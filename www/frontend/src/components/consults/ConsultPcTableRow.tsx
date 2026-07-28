@@ -95,7 +95,7 @@ export default function ConsultPcTableRow({
       <td className="consult-row__cell px-2 py-3">
         <div className="consult-customer min-w-0">
           <strong className={clsx('block truncate text-sm text-slate-900', isNew && 'font-bold')}>
-            {consult.customerNameMasked}
+            {consult.companyName ? `${consult.companyName} (${consult.customerNameMasked})` : consult.customerNameMasked}
           </strong>
           <span className="mt-0.5 block truncate text-xs text-slate-500">
             {consult.phoneMasked ?? '전화 미등록'}

@@ -40,7 +40,9 @@ export default function ConsultCustomerSidePanel({ consult, className }: Consult
   return (
     <aside className={`consult-customer-side flex min-h-0 flex-col bg-white ${className ?? ''}`} aria-label="고객 정보 패널">
       <header className="shrink-0 border-b border-slate-200 px-4 py-3">
-        <h2 className="text-sm font-semibold text-slate-900">{consult.customerNameMasked}</h2>
+        <h2 className="text-sm font-semibold text-slate-900">
+          {consult.companyName ? `${consult.companyName} (${consult.customerNameMasked})` : consult.customerNameMasked}
+        </h2>
         <p className="mt-0.5 font-mono text-xs text-slate-500">{consult.phoneMasked ?? '연락처 미등록'}</p>
       </header>
 

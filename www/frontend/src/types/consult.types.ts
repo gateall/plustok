@@ -16,6 +16,7 @@ export interface ConsultListItem {
   id: string;
   source: ConsultSource;
   customerNameMasked: string;
+  companyName?: string | null;
   agent: ConsultAgent | null;
   status: string;
   aiEnabled: boolean;
@@ -78,6 +79,7 @@ export interface ConsultDetail {
   consultNo: string;
   status: string;
   customerNameMasked: string;
+  companyName?: string | null;
   phoneMasked?: string | null;
   email?: string | null;
   siteName?: string | null;

@@ -46,7 +46,7 @@ export default function ConsultCard({ consult }: ConsultCardProps) {
 
       <div className="mt-2 min-w-0 space-y-1">
         <p className="break-words-safe text-sm font-medium text-slate-900">
-          {consult.customerNameMasked}
+          {consult.companyName ? `${consult.companyName} (${consult.customerNameMasked})` : consult.customerNameMasked}
           {consult.phoneMasked && (
             <span className="font-normal text-slate-500"> · {consult.phoneMasked}</span>
           )}

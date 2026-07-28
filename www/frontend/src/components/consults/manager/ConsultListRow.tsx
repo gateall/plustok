@@ -132,7 +132,9 @@ export default function ConsultListRow({
 
             <p className="break-mono truncate font-mono text-sm font-semibold text-slate-900">{consultNo}</p>
 
-            <p className="mt-0.5 truncate text-sm font-medium text-slate-800">{consult.customerNameMasked}</p>
+            <p className="mt-0.5 truncate text-sm font-medium text-slate-800">
+              {consult.companyName ? `${consult.companyName} (${consult.customerNameMasked})` : consult.customerNameMasked}
+            </p>
 
           </div>
 

@@ -139,7 +139,7 @@ final class AdminConsultService
         $custTable = CrmSchema::legacyCustomerTable($this->pdo);
 
         $sql = "SELECT c.id, c.consult_no, c.status, c.product_name, c.lead_score, c.manager_id, c.tags, c.detail_json, c.created_at, c.updated_at,
-                       cu.name AS cust_name, cu.phone, s.site_name
+                       cu.name AS cust_name, cu.phone, cu.company AS cust_company, s.site_name
                 FROM consults c
                 LEFT JOIN {$custTable} cu ON cu.id = c.customer_id
                 LEFT JOIN sites s ON s.id = c.site_id
@@ -169,6 +169,7 @@ final class AdminConsultService
                 'source'              => 'crm',
                 'consultNo'           => (string)$r['consult_no'],
                 'customerNameMasked'  => $customerName,
+                'companyName'         => !empty($r['cust_company']) ? (string)$r['cust_company'] : null,
                 'phoneMasked'         => $phoneMasked,
                 'siteName'            => !empty($r['site_name']) ? (string)$r['site_name'] : null,
                 'productName'         => !empty($r['product_name']) ? (string)$r['product_name'] : null,
@@ -490,6 +491,10 @@ final class AdminConsultService
                     continue;
                 }
 
+                if (acep_table_exists($this->pdo, 'consult_history')) {
+                    $this->pdo->prepare('DELETE FROM consult_history WHERE consult_id = :id')
+                        ->execute([':id' => $target['consultId']]);
+                }
                 $this->pdo->prepare('DELETE FROM consults WHERE id = :id')
                     ->execute([':id' => $target['consultId']]);
                 $result['deleted']++;
@@ -497,7 +502,8 @@ final class AdminConsultService
             $this->pdo->commit();
         } catch (Throwable $e) {
             $this->pdo->rollBack();
-            throw $e;
+            log_api_error($e);
+            acep_error('CONSULT_BULK_DELETE_FAILED', '상담 일괄 삭제에 실패했습니다.', 500);
         }
 
         return $result;
@@ -1110,7 +1116,7 @@ final class AdminConsultService
         }
 
         $custTable = CrmSchema::legacyCustomerTable($this->pdo);
-        $sql = "SELECT c.*, cu.name AS cust_name, cu.phone, cu.email,
+        $sql = "SELECT c.*, cu.name AS cust_name, cu.phone, cu.email, cu.company AS cust_company,
                        s.site_name
                 FROM consults c
                 LEFT JOIN {$custTable} cu ON cu.id = c.customer_id
@@ -1150,6 +1156,7 @@ final class AdminConsultService
             'consultNo'           => (string)$row['consult_no'],
             'status'              => (string)$row['status'],
             'customerNameMasked'  => $customerName,
+            'companyName'         => !empty($row['cust_company']) ? (string)$row['cust_company'] : null,
             'phoneMasked'         => $phoneMasked,
             'email'               => !empty($row['email']) ? (string)$row['email'] : null,
             'siteName'            => !empty($row['site_name']) ? (string)$row['site_name'] : null,
