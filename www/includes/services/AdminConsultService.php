@@ -48,6 +48,11 @@ final class AdminConsultService
     {
         $where = ['cr.deleted_at IS NULL'];
         $params = [];
+        // 이미 CRM consults 테이블에 저장된 방(legacy_consult_id 연결)은 listCrmConsults()가
+        // 사이트명/상품명 등 완전한 데이터로 이미 보여주므로 여기서 중복 표시하지 않는다.
+        if (acep_column_exists($this->pdo, 'chat_rooms', 'legacy_consult_id')) {
+            $where[] = 'cr.legacy_consult_id IS NULL';
+        }
         if ($status) {
             $where[] = 'cr.status = :st';
             $params[':st'] = $status;
