@@ -126,6 +126,30 @@ try {
         $customerId = (int)$pdo->lastInsertId();
     } else {
         $customerId = (int)$customerId;
+        // 기존 고객이 새 상담에서 더 최신 정보(이름/상호/이메일/주소)를 보내오면 반영한다.
+        // 그렇지 않으면 최초 접수 당시 값(테스트 데이터 포함)이 영구히 고정되어 보인다.
+        $custUpdate = [];
+        $updateParams = [':id' => $customerId];
+        if ($name !== '') {
+            $custUpdate[] = 'name = :u_name';
+            $updateParams[':u_name'] = $name;
+        }
+        if ($company !== '' && acep_column_exists($pdo, $custTable, 'company')) {
+            $custUpdate[] = 'company = :u_company';
+            $updateParams[':u_company'] = $company;
+        }
+        if ($email !== '' && acep_column_exists($pdo, $custTable, 'email')) {
+            $custUpdate[] = 'email = :u_email';
+            $updateParams[':u_email'] = $email;
+        }
+        if ($address !== '' && acep_column_exists($pdo, $custTable, 'address')) {
+            $custUpdate[] = 'address = :u_address';
+            $updateParams[':u_address'] = $address;
+        }
+        if ($custUpdate !== []) {
+            $pdo->prepare('UPDATE ' . $custTable . ' SET ' . implode(', ', $custUpdate) . ' WHERE id = :id')
+                ->execute($updateParams);
+        }
     }
 
     // --- product_id 매핑(있으면) ---
