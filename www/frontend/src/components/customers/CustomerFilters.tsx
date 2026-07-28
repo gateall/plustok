@@ -55,22 +55,37 @@ export default function CustomerFilters() {
     applyFilters(q, val);
   };
 
+  const handleReset = () => {
+    setQ('');
+    setStatus('');
+    applyFilters('', '');
+  };
+
   return (
     <FilterBar className="mb-4">
-      <div className="flex w-full min-w-0 flex-col gap-2 md:flex-row md:items-center">
-        <Select
-          value={status}
-          onChange={(e) => handleStatusChange(e.target.value)}
-          options={CUSTOMER_STATUS_OPTIONS}
-          className="w-full md:w-36"
-        />
+      <div className="flex w-full flex-col gap-3 md:flex-row md:items-center">
         <SearchBox
           value={q}
           onChange={setQ}
           onSubmit={handleSearchSubmit}
-          placeholder="이름, 연락처, 이메일 등 검색"
-          className="w-full"
+          placeholder="고객명, 연락처, 이메일 검색"
+          className="w-full flex-1 [&_input]:min-h-[44px]"
         />
+        <div className="flex w-full gap-2 md:w-auto">
+          <Select
+            value={status}
+            onChange={(e) => handleStatusChange(e.target.value)}
+            options={CUSTOMER_STATUS_OPTIONS}
+            className="w-full flex-1 md:w-36 min-h-[44px]"
+          />
+          <button
+            type="button"
+            onClick={handleReset}
+            className="shrink-0 h-[44px] px-4 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            초기화
+          </button>
+        </div>
       </div>
     </FilterBar>
   );

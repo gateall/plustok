@@ -41,8 +41,8 @@ export default function AdminCustomersPage() {
   return (
     <div className="admin-page-shell min-w-0 py-4 md:py-6 w-full">
       <PageHeader
-        title="고객 관리"
-        description={`총 ${total}명${total > 0 ? ` (페이지 ${page}/${totalPages})` : ''}`}
+        title="고객관리"
+        description="등록 고객과 상담 현황을 관리합니다."
       />
 
       <CustomerFilters />

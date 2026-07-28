@@ -15,28 +15,36 @@ function formatStandardDate(dateStr: string | null) {
   }).format(d);
 }
 
+function getTone(status: string) {
+  if (status === 'active') return 'success';
+  if (status === 'new') return 'info';
+  if (status === 'dormant') return 'neutral';
+  return 'neutral';
+}
+
 export default function CustomerTable({ customers }: { customers: CustomerItem[] }) {
   return (
-    <div className="admin-desktop-table overflow-hidden rounded-xl border border-[var(--pt-color-border)] bg-white shadow-sm">
+    <div className="admin-desktop-table max-[768px]:hidden min-[769px]:block overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       <div className="table-scroll w-full overflow-x-auto">
         <table className="w-full text-left text-sm text-slate-600">
           <thead className="bg-slate-50 text-slate-700">
             <tr>
-              <th className="whitespace-nowrap px-4 py-3 font-semibold">고객명</th>
-              <th className="whitespace-nowrap px-4 py-3 font-semibold">연락처</th>
-              <th className="whitespace-nowrap px-4 py-3 font-semibold">이메일</th>
-              <th className="whitespace-nowrap px-4 py-3 font-semibold">소속</th>
-              <th className="whitespace-nowrap px-4 py-3 font-semibold">사이트</th>
-              <th className="whitespace-nowrap px-4 py-3 font-semibold text-center">상태</th>
-              <th className="whitespace-nowrap px-4 py-3 font-semibold text-center">상담 건수</th>
-              <th className="whitespace-nowrap px-4 py-3 font-semibold">최근 상담일</th>
+              <th className="whitespace-nowrap px-4 py-4 font-semibold">고객명</th>
+              <th className="whitespace-nowrap px-4 py-4 font-semibold">연락처</th>
+              <th className="whitespace-nowrap px-4 py-4 font-semibold">이메일</th>
+              <th className="whitespace-nowrap px-4 py-4 font-semibold">소속</th>
+              <th className="whitespace-nowrap px-4 py-4 font-semibold">사이트</th>
+              <th className="whitespace-nowrap px-4 py-4 font-semibold text-center">상태</th>
+              <th className="whitespace-nowrap px-4 py-4 font-semibold text-center">상담 건수</th>
+              <th className="whitespace-nowrap px-4 py-4 font-semibold">최근 상담일</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[var(--pt-color-border)]">
+          <tbody className="divide-y divide-slate-200">
             {customers.map((c) => (
-              <tr key={c.id} className="hover:bg-slate-50 transition-colors">
+              <tr key={c.id} className="hover:bg-slate-50 transition-colors h-[60px]">
                 <td className="whitespace-nowrap px-4 py-3 font-medium text-slate-900">
                   {c.name}
+                  <div className="text-xs text-slate-400 font-normal mt-0.5">{c.customerNo || c.id}</div>
                 </td>
                 <td className="whitespace-nowrap px-4 py-3">
                   {c.phone || '-'}
@@ -51,7 +59,10 @@ export default function CustomerTable({ customers }: { customers: CustomerItem[]
                   {c.siteName || '-'}
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-center">
-                  <StatusBadge label={CUSTOMER_STATUS_LABELS[c.status] || c.status} tone={c.status === 'new' ? 'info' : c.status === 'active' ? 'success' : 'neutral'} />
+                  <StatusBadge 
+                    label={CUSTOMER_STATUS_LABELS[c.status] || c.status} 
+                    tone={getTone(c.status)} 
+                  />
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-center">
                   {c.consultCount}
