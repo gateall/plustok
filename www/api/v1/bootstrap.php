@@ -59,6 +59,7 @@ function acep_bootstrap(bool $forceReload = false): array
     require_once __DIR__ . '/../../includes/services/AdminProductService.php';
     require_once __DIR__ . '/../../includes/controllers/AdminProductController.php';
     require_once __DIR__ . '/../../includes/services/AdminAiSettingsService.php';
+    require_once __DIR__ . '/../../includes/services/AdminSiteSettingsService.php';
 
     $pdo = db();
     $agents = new AgentRepository($pdo);
@@ -115,6 +116,7 @@ function acep_bootstrap(bool $forceReload = false): array
     $adminProductSvc = new AdminProductService($productRepo, $audit, $pdo);
     $productController = new AdminProductController($adminProductSvc);
     $adminAiSettingsSvc = new AdminAiSettingsService($pdo);
+    $adminSiteSettingsSvc = new AdminSiteSettingsService($pdo);
 
     $adminStatsSvc = null;
     $adminAgentSvc = null;
@@ -159,7 +161,7 @@ function acep_bootstrap(bool $forceReload = false): array
         'notificationSvc', 'settingsSvc', 'searchSvc', 'dashboardSvc', 'siteSvc', 'siteController',
         'crmCloseSvc', 'adminStatsSvc', 'adminAgentSvc', 'adminMonitorSvc', 'adminConsultSvc',
         'adminPromptSvc', 'adminFailoverSvc', 'adminContractSvc', 'adminCustomerSvc',
-        'adminProductSvc', 'productController', 'adminAiSettingsSvc',
+        'adminProductSvc', 'productController', 'adminAiSettingsSvc', 'adminSiteSettingsSvc',
     );
 
     return $container;

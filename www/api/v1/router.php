@@ -453,6 +453,7 @@ function acep_route_admin(string $method, string $uri, array $c): void
     $adminPromptSvc = $c['adminPromptSvc'];
     $adminFailoverSvc = $c['adminFailoverSvc'];
     $adminAiSettingsSvc = $c['adminAiSettingsSvc'] ?? null;
+    $adminSiteSettingsSvc = $c['adminSiteSettingsSvc'] ?? null;
     $settingsSvc = $c['settingsSvc'];
     $siteController = $c['siteController'];
     $productController = $c['productController'];
@@ -672,6 +673,15 @@ function acep_route_admin(string $method, string $uri, array $c): void
         JwtMiddleware::requireRole(['admin', 'super']);
         $adminAiSettingsSvc->deleteKey(rawurldecode($m[1]));
         acep_success(['deleted' => true]);
+    }
+
+    if ($method === 'GET' && $uri === '/admin/settings/site' && $adminSiteSettingsSvc) {
+        JwtMiddleware::requireRole(['admin', 'super']);
+        acep_success($adminSiteSettingsSvc->getSettings());
+    }
+    if ($method === 'PUT' && $uri === '/admin/settings/site' && $adminSiteSettingsSvc) {
+        JwtMiddleware::requireRole(['admin', 'super']);
+        acep_success($adminSiteSettingsSvc->updateSettings(acep_read_json()));
     }
 
     if ($method === 'GET' && $uri === '/admin/audit-logs') {

@@ -4,6 +4,7 @@ import { useSettings, useSettingsUpdate } from '../hooks/useSettings';
 import type { UserSettings } from '../types/settings.types';
 import EmptyState from '../components/common/EmptyState';
 import AdminAiSettingsPanel from '../components/settings/AdminAiSettingsPanel';
+import AdminSiteSettingsPanel from '../components/settings/AdminSiteSettingsPanel';
 
 export default function AdminSettingsPage() {
   const { data, isLoading } = useSettings();
@@ -177,12 +178,7 @@ export default function AdminSettingsPage() {
                 )}
               </div>
             ) : activeTab === 'site' ? (
-              <div className="p-12">
-                <EmptyState 
-                  title="사이트 설정 (준비 중)" 
-                  description="사이트 제목, 로고 등 전체 서비스 설정 API는 현재 연동 준비 중입니다." 
-                />
-              </div>
+              <AdminSiteSettingsPanel />
             ) : activeTab === 'security' ? (
               <div className="p-12">
                 <EmptyState 
