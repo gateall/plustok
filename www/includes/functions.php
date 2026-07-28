@@ -141,6 +141,25 @@ function rate_limit_ok(string $key): bool
 }
 
 /**
+ * admin/settings 사이트 설정에서 저장한 알림 이메일. 테이블/행이 없으면 기본 상수로 대체.
+ */
+function acep_admin_notify_email(): string
+{
+    try {
+        $pdo = db();
+        if (acep_table_exists($pdo, 'site_settings')) {
+            $email = $pdo->query("SELECT admin_notify_email FROM site_settings WHERE id = 1 LIMIT 1")->fetchColumn();
+            if (!empty($email)) {
+                return (string)$email;
+            }
+        }
+    } catch (Throwable $e) {
+        // 조회 실패 시 기본값으로 조용히 대체
+    }
+    return ADMIN_NOTIFY_EMAIL;
+}
+
+/**
  * 신규 상담접수 알림메일. 실패해도 예외를 던지지 않는다(접수 흐름을 막지 않기 위함).
  */
 function notify_new_consult(array $site, string $consultNo, string $name, string $phone, string $product, string $memo): void
@@ -161,7 +180,7 @@ function notify_new_consult(array $site, string $consultNo, string $name, string
         $lines[] = '관리자 확인: https://plustok.mycafe24.com/admin/consults/';
         $body = implode("\r\n", $lines);
 
-        acep_send_mail(ADMIN_NOTIFY_EMAIL, $subject, $body, 'notify_mail');
+        acep_send_mail(acep_admin_notify_email(), $subject, $body, 'notify_mail');
     } catch (Throwable $e) {
         log_error('notify_mail', $e->getMessage());
     }
